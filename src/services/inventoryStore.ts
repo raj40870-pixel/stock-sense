@@ -22,7 +22,28 @@ const STORAGE_KEYS = {
   OPERATIONS: 'stocksense_operations',
   LEDGER: 'stocksense_ledger',
   USER: 'stocksense_current_user',
+  ACCOUNTS: 'stocksense_accounts',
 };
+
+export interface StoredUserAccount {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  warehouseId?: string;
+}
+
+const DEFAULT_ACCOUNTS: StoredUserAccount[] = [
+  {
+    id: 'usr-k69117842',
+    name: 'Kamaljit Singh',
+    email: 'k69117842@gmail.com',
+    password: 'password123',
+    role: 'inventory_manager',
+    warehouseId: 'wh-1',
+  },
+];
 
 // Initial Seed Data
 const DEFAULT_WAREHOUSES: Warehouse[] = [
@@ -326,9 +347,9 @@ const DEFAULT_MOVES: StockMove[] = [
 ];
 
 const DEFAULT_USER: UserProfile = {
-  id: 'usr-1',
+  id: 'usr-k69117842',
   name: 'Kamaljit Singh',
-  email: 'kamaljit444501@gmail.com',
+  email: 'k69117842@gmail.com',
   role: 'inventory_manager',
   warehouseId: 'wh-1',
 };
@@ -381,7 +402,17 @@ class InventoryStore {
   public getUser(): UserProfile | null {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.USER);
-      return data ? JSON.parse(data) : null;
+      if (!data) return null;
+      const user: UserProfile = JSON.parse(data);
+      // Clean up old fake accounts in current session
+      const fakeEmails = ['manager@stocksense.io', 'staff@stocksense.io', 'kamaljit.manager@stocksense.io', 'kamaljit444501@gmail.com'];
+      if (user.email && fakeEmails.includes(user.email.toLowerCase())) {
+        user.email = 'k69117842@gmail.com';
+        user.name = 'Kamaljit Singh';
+        user.role = 'inventory_manager';
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+      }
+      return user;
     } catch {
       return null;
     }
@@ -409,6 +440,142 @@ class InventoryStore {
   public updateUser(user: UserProfile) {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
     this.notify();
+  }
+
+  // --- Real User Accounts & Auth ---
+  public getAccounts(): StoredUserAccount[] {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.ACCOUNTS);
+      let accounts: StoredUserAccount[] = data ? JSON.parse(data) : [];
+
+      // Filter out any fake demo accounts
+      const fakeEmails = [
+        'manager@stocksense.io',
+        'staff@stocksense.io',
+        'kamaljit.manager@stocksense.io',
+        'kamaljit444501@gmail.com',
+      ];
+      accounts = accounts.filter(a => !fakeEmails.includes(a.email.toLowerCase()));
+
+      // Ensure the real user k69117842@gmail.com is present
+      const realAccIndex = accounts.findIndex(a => a.email.toLowerCase() === 'k69117842@gmail.com');
+      if (realAccIndex === -1) {
+        accounts.unshift({
+          id: 'usr-k69117842',
+          name: 'Kamaljit Singh',
+          email: 'k69117842@gmail.com',
+          password: 'password123',
+          role: 'inventory_manager',
+          warehouseId: 'wh-1',
+        });
+      }
+
+      localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
+      return accounts;
+    } catch {
+      return DEFAULT_ACCOUNTS;
+    }
+  }
+
+  public registerAccount(name: string, email: string, password: string): { success: boolean; message: string; user?: UserProfile } {
+    const accounts = this.getAccounts();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existingIndex = accounts.findIndex(a => a.email.toLowerCase() === normalizedEmail);
+    const isStaff = normalizedEmail.includes('staff');
+    const role: UserRole = isStaff ? 'warehouse_staff' : 'inventory_manager';
+
+    if (existingIndex !== -1) {
+      accounts[existingIndex].password = password;
+      accounts[existingIndex].name = name;
+      localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
+      const user: UserProfile = {
+        id: accounts[existingIndex].id,
+        name: accounts[existingIndex].name,
+        email: accounts[existingIndex].email,
+        role: accounts[existingIndex].role,
+        warehouseId: accounts[existingIndex].warehouseId,
+      };
+      this.login(user);
+      return { success: true, message: 'Account updated and logged in!', user };
+    }
+
+    const newAcc: StoredUserAccount = {
+      id: `usr-${Date.now()}`,
+      name,
+      email: normalizedEmail,
+      password,
+      role,
+      warehouseId: 'wh-1',
+    };
+
+    accounts.push(newAcc);
+    localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
+
+    const user: UserProfile = {
+      id: newAcc.id,
+      name: newAcc.name,
+      email: newAcc.email,
+      role: newAcc.role,
+      warehouseId: newAcc.warehouseId,
+    };
+    this.login(user);
+    return { success: true, message: 'Account registered successfully!', user };
+  }
+
+  public authenticate(email: string, password: string): { success: boolean; message: string; user?: UserProfile } {
+    const accounts = this.getAccounts();
+    const normalizedEmail = email.trim().toLowerCase();
+    const acc = accounts.find(a => a.email.toLowerCase() === normalizedEmail);
+
+    if (!acc) {
+      return {
+        success: false,
+        message: `Account "${email}" not found. Please register via "Create Account" tab or enter correct email.`,
+      };
+    }
+
+    if (acc.password && acc.password !== password) {
+      return {
+        success: false,
+        message: 'Incorrect password! Please check your password or use "Forgot via OTP?" to reset it.',
+      };
+    }
+
+    const user: UserProfile = {
+      id: acc.id,
+      name: acc.name,
+      email: acc.email,
+      role: acc.role,
+      warehouseId: acc.warehouseId,
+    };
+    this.login(user);
+    return { success: true, message: 'Login successful!', user };
+  }
+
+  public resetPassword(email: string, newPassword: string): { success: boolean; message: string; user?: UserProfile } {
+    const accounts = this.getAccounts();
+    const normalizedEmail = email.trim().toLowerCase();
+    const acc = accounts.find(a => a.email.toLowerCase() === normalizedEmail);
+
+    if (acc) {
+      acc.password = newPassword;
+      localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
+      const user: UserProfile = {
+        id: acc.id,
+        name: acc.name,
+        email: acc.email,
+        role: acc.role,
+        warehouseId: acc.warehouseId,
+      };
+      this.login(user);
+      return { success: true, message: `Password for ${acc.email} reset and saved successfully!`, user };
+    } else {
+      const isStaff = normalizedEmail.includes('staff');
+      const rawName = normalizedEmail.split('@')[0].replace(/[._-]/g, ' ');
+      const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+      return this.registerAccount(formattedName, normalizedEmail, newPassword);
+    }
   }
 
   // --- Warehouses & Locations ---

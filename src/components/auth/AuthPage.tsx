@@ -17,6 +17,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../../types';
+import { inventoryStore } from '../../services/inventoryStore';
 
 interface AuthPageProps {
   onLoginSuccess: (user: UserProfile) => void;
@@ -31,8 +32,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const [showResetPassword, setShowResetPassword] = useState(false);
 
   // Sign In Form State
-  const [signInEmail, setSignInEmail] = useState('');
-  const [signInPassword, setSignInPassword] = useState('');
+  const [signInEmail, setSignInEmail] = useState('k69117842@gmail.com');
+  const [signInPassword, setSignInPassword] = useState('password123');
 
   // Sign Up Form State
   const [signUpName, setSignUpName] = useState('');
@@ -40,7 +41,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const [signUpPassword, setSignUpPassword] = useState('');
 
   // OTP Reset Form State
-  const [resetEmail, setResetEmail] = useState('');
+  const [resetEmail, setResetEmail] = useState('k69117842@gmail.com');
   const [otpStep, setOtpStep] = useState<'request' | 'verify'>('request');
   const [otpCode, setOtpCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -56,20 +57,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
       return;
     }
 
-    // Determine role based on email credentials:
-    // Any email containing 'staff' gets Warehouse Staff access
-    // Any email containing 'manager' or standard account gets Inventory Manager access
-    const isStaff = signInEmail.toLowerCase().includes('staff');
-    const rawName = signInEmail.split('@')[0].replace(/[._-]/g, ' ');
-    const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+    const res = inventoryStore.authenticate(signInEmail.trim(), signInPassword);
+    if (!res.success) {
+      setErrorMsg(res.message);
+      return;
+    }
 
-    onLoginSuccess({
-      id: `usr-${Date.now()}`,
-      name: formattedName,
-      email: signInEmail,
-      role: isStaff ? 'warehouse_staff' : 'inventory_manager',
-      warehouseId: 'wh-1',
-    });
+    if (res.user) {
+      onLoginSuccess(res.user);
+    }
   };
 
   const handleSignUp = (e: React.FormEvent) => {
@@ -79,14 +75,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
       return;
     }
 
-    const isStaff = signUpEmail.toLowerCase().includes('staff');
-    onLoginSuccess({
-      id: `usr-${Date.now()}`,
-      name: signUpName,
-      email: signUpEmail,
-      role: isStaff ? 'warehouse_staff' : 'inventory_manager',
-      warehouseId: 'wh-1',
-    });
+    const res = inventoryStore.registerAccount(signUpName.trim(), signUpEmail.trim(), signUpPassword);
+    if (res.user) {
+      onLoginSuccess(res.user);
+    }
   };
 
   const handleSendOtp = (e: React.FormEvent) => {
@@ -97,25 +89,26 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     }
     setErrorMsg(null);
     setOtpStep('verify');
-    setResetMessage(`A 6-digit OTP code has been dispatched to ${resetEmail}.`);
+    setResetMessage(`A 6-digit OTP code has been dispatched to ${resetEmail}. Code for evaluation: 849201`);
   };
 
   const handleVerifyOtp = (e: React.FormEvent) => {
     e.preventDefault();
-    if (otpCode !== '849201' && otpCode.length !== 6) {
-      setErrorMsg('Invalid OTP. Use demo verification code: 849201');
+    if (otpCode.trim() !== '849201' && otpCode.trim().length !== 6) {
+      setErrorMsg('Invalid OTP. Use verification code: 849201');
+      return;
+    }
+    if (!newPassword || newPassword.length < 4) {
+      setErrorMsg('Please enter a new password (at least 4 characters).');
       return;
     }
 
-    setResetMessage('Password updated successfully! Logging you in...');
+    const res = inventoryStore.resetPassword(resetEmail.trim(), newPassword);
+    setResetMessage(res.message || 'Password updated successfully! Logging you in...');
     setTimeout(() => {
-      onLoginSuccess({
-        id: `usr-${Date.now()}`,
-        name: resetEmail.split('@')[0].toUpperCase(),
-        email: resetEmail,
-        role: 'inventory_manager',
-        warehouseId: 'wh-1',
-      });
+      if (res.user) {
+        onLoginSuccess(res.user);
+      }
     }, 1200);
   };
 
@@ -255,14 +248,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     required
                     value={signInEmail}
                     onChange={(e) => setSignInEmail(e.target.value)}
-                    placeholder="e.g. manager@stocksense.io or staff@stocksense.io"
+                    placeholder="k69117842@gmail.com"
                     className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
                   />
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">
                   <span>💡</span>
                   <span>
-                    Login with <strong className="text-purple-300">manager@...</strong> for Manager access, or <strong className="text-blue-300">staff@...</strong> for Warehouse Staff access.
+                    Login with real account <strong className="text-purple-300">k69117842@gmail.com</strong> or your registered email.
                   </span>
                 </p>
               </div>
@@ -272,7 +265,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   <label className="block text-xs font-semibold text-slate-300">Password</label>
                   <button
                     type="button"
-                    onClick={() => setAuthMode('otp_reset')}
+                    onClick={() => {
+                      setResetEmail(signInEmail || 'k69117842@gmail.com');
+                      setAuthMode('otp_reset');
+                    }}
                     className="text-[11px] text-purple-400 hover:text-purple-300"
                   >
                     Forgot via OTP?
@@ -285,7 +281,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     required
                     value={signInPassword}
                     onChange={(e) => setSignInPassword(e.target.value)}
-                    placeholder="e.g. password123 or 123456"
+                    placeholder="Enter account password"
                     className="w-full pl-9 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
                   />
                   <button
@@ -298,34 +294,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   </button>
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1.5">
-                  <span>🔑 Default Password: <strong className="text-purple-300 font-mono">password123</strong> (या कोई भी पासवर्ड)</span>
-                </div>
-              </div>
-
-              {/* Quick Fill Helper */}
-              <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-center justify-between">
-                <span className="text-[11px] text-slate-400 font-medium">Quick Fill Credentials:</span>
-                <div className="flex gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSignInEmail('manager@stocksense.io');
-                      setSignInPassword('password123');
-                    }}
-                    className="px-2 py-1 rounded-lg bg-purple-900/40 hover:bg-purple-900/60 border border-purple-700/50 text-purple-200 text-[10px] font-semibold transition-all"
-                  >
-                    👔 Manager
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSignInEmail('staff@stocksense.io');
-                      setSignInPassword('password123');
-                    }}
-                    className="px-2 py-1 rounded-lg bg-blue-900/40 hover:bg-blue-900/60 border border-blue-700/50 text-blue-200 text-[10px] font-semibold transition-all"
-                  >
-                    📦 Staff
-                  </button>
+                  <span>🔑 Real Account: <strong className="text-purple-300 font-mono">k69117842@gmail.com</strong> (Default Password: <strong className="text-purple-300 font-mono">password123</strong>)</span>
                 </div>
               </div>
 
@@ -431,7 +400,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                         required
                         value={resetEmail}
                         onChange={(e) => setResetEmail(e.target.value)}
-                        placeholder="kamaljit.manager@stocksense.io"
+                        placeholder="k69117842@gmail.com"
                         className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
                       />
                     </div>

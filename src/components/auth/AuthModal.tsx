@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, ShieldCheck, Mail, Lock, KeyRound, CheckCircle2, User, Eye, EyeOff } from 'lucide-react';
 import { UserProfile, UserRole } from '../../types';
+import { inventoryStore } from '../../services/inventoryStore';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -33,12 +34,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateUser({
+    const updated = {
       ...currentUser,
       name,
       email,
       role,
-    });
+    };
+    inventoryStore.updateUser(updated);
+    onUpdateUser(updated);
     onClose();
   };
 
@@ -49,6 +52,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleVerifyOtp = (e: React.FormEvent) => {
     e.preventDefault();
     if (otpCode.length === 6) {
+      if (newPassword) {
+        inventoryStore.resetPassword(email, newPassword);
+      }
       setResetSuccess(true);
       setTimeout(() => {
         setResetSuccess(false);
