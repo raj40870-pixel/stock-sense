@@ -2,15 +2,14 @@ import React, { useState } from 'react';
 import {
   Search,
   Bell,
-  CloudCheck,
   ShieldAlert,
   Layers,
   ChevronDown,
   Warehouse as WarehouseIcon,
   Plus,
+  LogOut,
 } from 'lucide-react';
 import { Product, UserProfile, Warehouse } from '../../types';
-import { LogOut } from 'lucide-react';
 
 interface TopbarProps {
   currentUser: UserProfile;
