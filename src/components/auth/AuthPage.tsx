@@ -104,6 +104,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
       setErrorMsg('Please enter your email and your new password.');
       return;
     }
+    const accounts = inventoryStore.getAccounts();
+    const acc = accounts.find((a) => a.email.toLowerCase() === resetEmail.trim().toLowerCase());
+    if (!acc) {
+      setErrorMsg(`No registered account found with email "${resetEmail.trim()}". Direct login without account creation is not allowed. Please click "Create Account" first.`);
+      return;
+    }
     if (newPassword.length < 4) {
       setErrorMsg('New password must be at least 4 characters.');
       return;
@@ -121,6 +127,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     }
 
     const res = inventoryStore.resetPassword(resetEmail.trim(), newPassword);
+    if (!res.success) {
+      setErrorMsg(res.message);
+      return;
+    }
     setResetMessage(res.message || 'Password reset successfully! Logging you in...');
     setTimeout(() => {
       if (res.user) {
@@ -310,6 +320,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
               >
                 Sign In & Launch Dashboard <ArrowRight className="w-4 h-4" />
               </button>
+
+              <div className="pt-2 text-center border-t border-slate-800/80">
+                <p className="text-xs text-slate-400">
+                  Don't have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('signup');
+                      setErrorMsg(null);
+                    }}
+                    className="text-purple-400 font-bold hover:underline"
+                  >
+                    Create Account & Verify OTP →
+                  </button>
+                </p>
+              </div>
             </form>
           )}
 
@@ -319,45 +345,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
               <div>
                 <h3 className="text-lg font-bold text-white tracking-tight">Create your StockSense Account</h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Select your role and verify your email via 6-digit OTP
+                  Select your permanent role and verify your email via 6-digit OTP
                 </p>
               </div>
 
               {signUpOtpStep === 'form' ? (
                 <form onSubmit={handleSendSignUpOtp} className="space-y-3.5">
+                  {/* Role Selector FIRST: Manager, Staff, User */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
-                    <div className="relative">
-                      <User className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        required
-                        value={signUpName}
-                        onChange={(e) => setSignUpName(e.target.value)}
-                        placeholder="e.g. Kamaljit Singh"
-                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
-                      />
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-200">1. Select Your Role</label>
+                      <span className="text-[10px] text-amber-400/90 font-medium">Permanent for account</span>
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="email"
-                        required
-                        value={signUpEmail}
-                        onChange={(e) => setSignUpEmail(e.target.value)}
-                        placeholder="name@company.com"
-                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Role Selector: Staff, Manager, User */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">Select Role</label>
                     <div className="grid grid-cols-3 gap-2">
                       <button
                         type="button"
@@ -404,7 +403,37 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Set Password</label>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">2. Full Name</label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={signUpName}
+                        onChange={(e) => setSignUpName(e.target.value)}
+                        placeholder="e.g. Kamaljit Singh"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">3. Email Address</label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="email"
+                        required
+                        value={signUpEmail}
+                        onChange={(e) => setSignUpEmail(e.target.value)}
+                        placeholder="name@company.com"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">4. Set Password</label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
@@ -432,6 +461,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   >
                     Send Email Verification OTP →
                   </button>
+
+                  <div className="pt-2 text-center border-t border-slate-800/80">
+                    <p className="text-xs text-slate-400">
+                      Already have an account?{' '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode('signin');
+                          setErrorMsg(null);
+                        }}
+                        className="text-purple-400 font-bold hover:underline"
+                      >
+                        Sign In →
+                      </button>
+                    </p>
+                  </div>
                 </form>
               ) : (
                 <form onSubmit={handleVerifySignUpOtp} className="space-y-4 animate-in fade-in">

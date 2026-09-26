@@ -43,30 +43,6 @@ const DEFAULT_ACCOUNTS: StoredUserAccount[] = [
     role: 'inventory_manager',
     warehouseId: 'wh-1',
   },
-  {
-    id: 'usr-kamaljit444501',
-    name: 'Kamaljit',
-    email: 'kamaljit444501@gmail.com',
-    password: 'password123',
-    role: 'inventory_manager',
-    warehouseId: 'wh-1',
-  },
-  {
-    id: 'usr-raj40870',
-    name: 'Raj kumar',
-    email: 'raj40870@gmail.com',
-    password: 'password123',
-    role: 'warehouse_staff',
-    warehouseId: 'wh-1',
-  },
-  {
-    id: 'usr-kamaljitlpu27',
-    name: 'Kamaljit lpu',
-    email: 'kamaljitlpu27@gmail.com',
-    password: 'password123',
-    role: 'general_user',
-    warehouseId: 'wh-1',
-  },
 ];
 
 // Initial Seed Data
@@ -619,10 +595,10 @@ class InventoryStore {
       this.login(user);
       return { success: true, message: `Password for ${acc.email} reset and saved successfully!`, user };
     } else {
-      const isStaff = normalizedEmail.includes('staff');
-      const rawName = normalizedEmail.split('@')[0].replace(/[._-]/g, ' ');
-      const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-      return this.registerAccount(formattedName, normalizedEmail, newPassword);
+      return {
+        success: false,
+        message: `No account found with email "${email}". Please create your account first.`,
+      };
     }
   }
 

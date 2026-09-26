@@ -9,12 +9,12 @@ import {
   Warehouse as WarehouseIcon,
   Plus,
 } from 'lucide-react';
-import { Product, UserProfile, UserRole, Warehouse } from '../../types';
+import { Product, UserProfile, Warehouse } from '../../types';
+import { LogOut } from 'lucide-react';
 
 interface TopbarProps {
   currentUser: UserProfile;
-  onRoleChange: (role: UserRole) => void;
-  onOpenAccountSwitcher?: () => void;
+  onLogout: () => void;
   warehouses: Warehouse[];
   selectedWarehouseId: string;
   onWarehouseChange: (id: string) => void;
@@ -27,8 +27,7 @@ interface TopbarProps {
 
 export const Topbar: React.FC<TopbarProps> = ({
   currentUser,
-  onRoleChange,
-  onOpenAccountSwitcher,
+  onLogout,
   warehouses,
   selectedWarehouseId,
   onWarehouseChange,
@@ -39,7 +38,7 @@ export const Topbar: React.FC<TopbarProps> = ({
   onQuickAction,
 }) => {
   const [showAlertsDropdown, setShowAlertsDropdown] = useState(false);
-  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 z-20">
@@ -136,89 +135,71 @@ export const Topbar: React.FC<TopbarProps> = ({
           )}
         </div>
 
-        {/* Role Switcher Pill */}
+        {/* Read-Only Fixed Role Badge (No role switching permitted) */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800">
+          <span
+            className={`w-2 h-2 rounded-full ${
+              currentUser.role === 'inventory_manager'
+                ? 'bg-[#714B67]'
+                : currentUser.role === 'warehouse_staff'
+                ? 'bg-blue-600'
+                : 'bg-emerald-600'
+            }`}
+          />
+          <span>
+            {currentUser.role === 'inventory_manager' && '👔 Manager'}
+            {currentUser.role === 'warehouse_staff' && '📦 Staff'}
+            {currentUser.role === 'general_user' && '👤 User'}
+          </span>
+        </div>
+
+        {/* User Profile Avatar with Direct Logout Popover */}
         <div className="relative">
           <button
-            onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-800 transition-colors"
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            className="flex items-center gap-2 p-1 pr-2.5 rounded-full border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-xs font-bold text-slate-700 shrink-0"
+            title="User Profile"
           >
-            <span
-              className={`w-2 h-2 rounded-full ${
-                currentUser.role === 'inventory_manager'
-                  ? 'bg-[#714B67]'
-                  : currentUser.role === 'warehouse_staff'
-                  ? 'bg-blue-600'
-                  : 'bg-emerald-600'
-              }`}
-            />
-            <span className="capitalize">{currentUser.role === 'general_user' ? 'General User' : currentUser.role.replace('_', ' ')}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#714B67] to-purple-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+              {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+            </div>
+            <span className="hidden sm:inline text-xs font-medium text-slate-700 max-w-[85px] truncate">
+              {currentUser.name ? currentUser.name.split(' ')[0] : 'User'}
+            </span>
           </button>
 
-          {showRoleDropdown && (
-            <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2">
-              <div className="px-2 py-1.5 text-[10px] uppercase font-bold tracking-wider text-slate-400">
-                Switch Role Perspective
+          {showProfileMenu && (
+            <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                <div className="w-10 h-10 rounded-full bg-purple-700 text-white flex items-center justify-center font-bold text-sm">
+                  {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-slate-900 truncate">{currentUser.name}</p>
+                  <p className="text-[11px] text-slate-500 truncate">{currentUser.email}</p>
+                  <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-purple-100 text-[#714B67] text-[10px] font-bold">
+                    {currentUser.role === 'inventory_manager' && '👔 Manager'}
+                    {currentUser.role === 'warehouse_staff' && '📦 Staff'}
+                    {currentUser.role === 'general_user' && '👤 User'}
+                  </span>
+                </div>
               </div>
-              <button
-                onClick={() => {
-                  onRoleChange('inventory_manager');
-                  setShowRoleDropdown(false);
-                }}
-                className={`w-full text-left px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${
-                  currentUser.role === 'inventory_manager'
-                    ? 'bg-purple-50 text-[#714B67] font-bold'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                👔 Inventory Manager
-                <span className="block text-[10px] text-slate-400 font-normal">Full control & Reorder rules</span>
-              </button>
-              <button
-                onClick={() => {
-                  onRoleChange('warehouse_staff');
-                  setShowRoleDropdown(false);
-                }}
-                className={`w-full text-left px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${
-                  currentUser.role === 'warehouse_staff'
-                    ? 'bg-blue-50 text-blue-700 font-bold'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                📦 Warehouse Staff
-                <span className="block text-[10px] text-slate-400 font-normal">Transfers, Picking & Counting</span>
-              </button>
-              <button
-                onClick={() => {
-                  onRoleChange('general_user');
-                  setShowRoleDropdown(false);
-                }}
-                className={`w-full text-left px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${
-                  currentUser.role === 'general_user'
-                    ? 'bg-emerald-50 text-emerald-700 font-bold'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                👤 General User
-                <span className="block text-[10px] text-slate-400 font-normal">Stock quants view & item tracking</span>
-              </button>
+
+              <div className="pt-3">
+                <button
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    onLogout();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-all border border-rose-200/60"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Sign Out / Log Out
+                </button>
+              </div>
             </div>
           )}
         </div>
-
-        {/* Google-Style User Profile Avatar Button */}
-        <button
-          onClick={onOpenAccountSwitcher}
-          className="flex items-center gap-2 p-1 pr-2.5 rounded-full border border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 transition-all text-xs font-bold text-slate-700 shrink-0"
-          title="Switch Account & IAM Settings"
-        >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#714B67] to-purple-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-            {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
-          </div>
-          <span className="hidden sm:inline text-xs font-medium text-slate-700 max-w-[85px] truncate">
-            {currentUser.name ? currentUser.name.split(' ')[0] : 'Account'}
-          </span>
-        </button>
       </div>
     </header>
   );

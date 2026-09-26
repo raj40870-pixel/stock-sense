@@ -34,7 +34,7 @@ interface SidebarProps {
   setActiveTab: (tab: NavTab) => void;
   currentUser: UserProfile;
   lowStockCount: number;
-  onOpenProfile: () => void;
+  onOpenProfile?: () => void;
   onLogout: () => void;
 }
 
@@ -216,13 +216,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Profile & Logout Section (As per PDF Navigation) */}
-      <div className="p-3 border-t border-slate-800 bg-slate-950/40 space-y-1">
-        <div
-          onClick={onOpenProfile}
-          className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800/80 cursor-pointer transition-colors"
-          title="Click to view My Profile"
-        >
+      {/* Profile & Logout Section */}
+      <div className="p-3 border-t border-slate-800 bg-slate-950/40 space-y-2">
+        <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-900/60 border border-slate-800/80">
           <div className="w-9 h-9 rounded-full bg-purple-700/60 border border-purple-500 flex items-center justify-center font-bold text-white text-xs">
             {currentUser.name.split(' ').map(n => n[0]).join('')}
           </div>
