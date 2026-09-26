@@ -68,12 +68,12 @@ export const ProductList: React.FC<ProductListProps> = ({
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
       {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900">Product Master Catalog</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900">Product Master Catalog</h1>
             <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-[#714B67]">
               {products.length} Products
             </span>
@@ -86,16 +86,16 @@ export const ProductList: React.FC<ProductListProps> = ({
         {currentUser.role === 'inventory_manager' && (
           <button
             onClick={onOpenCreateModal}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#714B67] hover:bg-[#5b3c53] text-white text-xs font-semibold shadow-sm transition-all shrink-0"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#714B67] hover:bg-[#5b3c53] text-white text-xs font-semibold shadow-sm transition-all shrink-0"
           >
             <Plus className="w-4 h-4" />
-            + Create New Product
+            <span>+ Create New Product</span>
           </button>
         )}
       </div>
 
       {/* Filters Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-xl border border-slate-200">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -103,16 +103,16 @@ export const ProductList: React.FC<ProductListProps> = ({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by Name or SKU..."
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-[#714B67]"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-[#714B67]"
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
           {/* Category Filter */}
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 outline-none"
+            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-slate-700 outline-none"
           >
             <option value="all">All Categories</option>
             {categories.map((c) => (
@@ -126,7 +126,7 @@ export const ProductList: React.FC<ProductListProps> = ({
           <select
             value={stockFilter}
             onChange={(e) => setStockFilter(e.target.value as any)}
-            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 outline-none"
+            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-slate-700 outline-none"
           >
             <option value="all">All Stock Statuses</option>
             <option value="low">Low Stock (≤ Min)</option>
@@ -137,8 +137,8 @@ export const ProductList: React.FC<ProductListProps> = ({
 
       {/* Products Table */}
       <div className="odoo-card bg-white overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto touch-scroll">
+          <table className="w-full text-left text-xs min-w-[640px]">
             <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="py-3 px-4 w-8"></th>

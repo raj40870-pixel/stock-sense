@@ -7,13 +7,13 @@ import {
   ArrowLeftRight,
   SlidersHorizontal,
   History,
-  Settings,
   Warehouse as WarehouseIcon,
   ShieldCheck,
   UserCheck,
   LogOut,
   FolderTree,
   BellRing,
+  X,
 } from 'lucide-react';
 import { UserProfile } from '../../types';
 
@@ -36,6 +36,8 @@ interface SidebarProps {
   lowStockCount: number;
   onOpenProfile?: () => void;
   onLogout: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -45,9 +47,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   lowStockCount,
   onOpenProfile,
   onLogout,
+  isOpen = false,
+  onClose,
 }) => {
+  const handleNavClick = (tab: NavTab) => {
+    setActiveTab(tab);
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-screen shrink-0 border-r border-slate-800 select-none">
+    <aside
+      className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-slate-900 text-slate-300 flex flex-col h-screen shrink-0 border-r border-slate-800 select-none transition-transform duration-300 ease-in-out md:static md:w-64 md:translate-x-0 ${
+        isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+      }`}
+    >
       {/* Brand Header */}
       <div className="h-16 flex items-center justify-between px-5 border-b border-slate-800 bg-slate-950/40">
         <div className="flex items-center gap-3">
@@ -57,19 +72,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-white tracking-tight text-lg">StockSense</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-900/60 text-purple-300 border border-purple-700/50">IMS</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-900/60 text-purple-300 border border-purple-700/50">
+                IMS
+              </span>
             </div>
             <p className="text-[10px] text-slate-400 font-mono">Odoo-Style Modular</p>
           </div>
         </div>
+
+        {/* Mobile Close Button */}
+        <button
+          onClick={onClose}
+          className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          title="Close Navigation"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Navigation Groups */}
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-6 touch-scroll">
         {/* Main Dashboard */}
         <div>
           <button
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => handleNavClick('dashboard')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'dashboard'
                 ? 'bg-[#714B67] text-white shadow-sm'
@@ -94,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <div className="space-y-1">
             <button
-              onClick={() => setActiveTab('products')}
+              onClick={() => handleNavClick('products')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                 activeTab === 'products'
                   ? 'bg-slate-800 text-white font-semibold'
@@ -108,7 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveTab('categories')}
+              onClick={() => handleNavClick('categories')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                 activeTab === 'categories'
                   ? 'bg-slate-800 text-white font-semibold'
@@ -130,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <div className="space-y-1">
             <button
-              onClick={() => setActiveTab('receipts')}
+              onClick={() => handleNavClick('receipts')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                 activeTab === 'receipts'
                   ? 'bg-slate-800 text-emerald-400 font-semibold border-l-2 border-emerald-500'
@@ -142,7 +168,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveTab('deliveries')}
+              onClick={() => handleNavClick('deliveries')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                 activeTab === 'deliveries'
                   ? 'bg-slate-800 text-purple-400 font-semibold border-l-2 border-purple-500'
@@ -154,7 +180,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveTab('internal')}
+              onClick={() => handleNavClick('internal')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                 activeTab === 'internal'
                   ? 'bg-slate-800 text-blue-400 font-semibold border-l-2 border-blue-500'
@@ -166,7 +192,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveTab('adjustments')}
+              onClick={() => handleNavClick('adjustments')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                 activeTab === 'adjustments'
                   ? 'bg-slate-800 text-amber-400 font-semibold border-l-2 border-amber-500'
@@ -185,7 +211,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Audit & Ledger</span>
           </div>
           <button
-            onClick={() => setActiveTab('ledger')}
+            onClick={() => handleNavClick('ledger')}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
               activeTab === 'ledger'
                 ? 'bg-slate-800 text-white font-semibold'
@@ -203,7 +229,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Configuration</span>
           </div>
           <button
-            onClick={() => setActiveTab('settings')}
+            onClick={() => handleNavClick('settings')}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
               activeTab === 'settings'
                 ? 'bg-slate-800 text-white font-semibold'
@@ -220,7 +246,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-3 border-t border-slate-800 bg-slate-950/40 space-y-2">
         <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-900/60 border border-slate-800/80">
           <div className="w-9 h-9 rounded-full bg-purple-700/60 border border-purple-500 flex items-center justify-center font-bold text-white text-xs">
-            {currentUser.name.split(' ').map(n => n[0]).join('')}
+            {currentUser.name
+              ? currentUser.name
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+              : 'U'}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-white truncate">{currentUser.name}</p>

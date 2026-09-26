@@ -97,12 +97,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     filterType !== 'all' || filterStatus !== 'all' || filterLocation !== 'all' || filterCategory !== 'all';
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-[#714B67] text-white p-6 rounded-2xl shadow-md">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-[#714B67] text-white p-4 sm:p-6 rounded-2xl shadow-md">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">StockSense Operations Hub</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">StockSense Operations Hub</h1>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white backdrop-blur">
               Real-Time
             </span>
@@ -112,44 +112,44 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
 
-        {/* Quick Launch Actions */}
-        <div className="flex items-center flex-wrap gap-2">
+        {/* Quick Launch Actions (Grid on mobile, flex on desktop) */}
+        <div className="grid grid-cols-2 sm:flex sm:items-center sm:flex-wrap gap-2">
           <button
             onClick={() => onOpenNewOp('receipt')}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition-all"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition-all"
           >
-            <ArrowDownLeft className="w-3.5 h-3.5" />
-            + New Receipt
+            <ArrowDownLeft className="w-3.5 h-3.5 shrink-0" />
+            <span>+ Receipt</span>
           </button>
 
           <button
             onClick={() => onOpenNewOp('delivery')}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-sm transition-all"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-sm transition-all"
           >
-            <ArrowUpRight className="w-3.5 h-3.5" />
-            + New Delivery
+            <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
+            <span>+ Delivery</span>
           </button>
 
           <button
             onClick={() => onOpenNewOp('internal')}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition-all"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition-all"
           >
-            <ArrowLeftRight className="w-3.5 h-3.5" />
-            Transfer
+            <ArrowLeftRight className="w-3.5 h-3.5 shrink-0" />
+            <span>Transfer</span>
           </button>
 
           <button
             onClick={() => onOpenNewOp('adjustment')}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-sm transition-all"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-sm transition-all"
           >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            Count Audit
+            <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+            <span>Count Audit</span>
           </button>
         </div>
       </div>
 
       {/* 5 KPIs as specified in Problem Statement */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4">
         {/* 1. Total Products in Stock */}
         <StatCard
           title="Products in Stock"
@@ -381,8 +381,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <span className="text-xs font-mono text-slate-400">Total: {operations.length} documents</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto touch-scroll">
+          <table className="w-full text-left text-xs min-w-[640px]">
             <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="py-3 px-4">Reference</th>

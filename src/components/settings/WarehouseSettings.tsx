@@ -54,16 +54,16 @@ export const WarehouseSettings: React.FC<WarehouseSettingsProps> = ({
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200">
         <div>
           <div className="flex items-center gap-2">
             <span className="p-2 rounded-xl bg-purple-50 text-[#714B67] border border-purple-100">
               <WarehouseIcon className="w-5 h-5" />
             </span>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Warehouses & Storage Locations</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900">Warehouses & Storage Locations</h1>
               <span className="text-xs text-slate-500">Multi-warehouse & rack infrastructure</span>
             </div>
           </div>
@@ -72,18 +72,20 @@ export const WarehouseSettings: React.FC<WarehouseSettingsProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={() => setShowAddWhModal(true)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#714B67] hover:bg-[#5b3c53] text-white text-xs font-semibold shadow-sm transition-all"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#714B67] hover:bg-[#5b3c53] text-white text-xs font-semibold shadow-sm transition-all"
           >
-            <Plus className="w-4 h-4" /> + Add Warehouse
+            <Plus className="w-4 h-4 shrink-0" />
+            <span>+ Warehouse</span>
           </button>
           <button
             onClick={() => setShowAddLocModal(true)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-sm transition-all"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-sm transition-all"
           >
-            <Plus className="w-4 h-4" /> + Add Rack / Location
+            <Plus className="w-4 h-4 shrink-0" />
+            <span>+ Location</span>
           </button>
         </div>
       </div>
@@ -155,8 +157,8 @@ export const WarehouseSettings: React.FC<WarehouseSettingsProps> = ({
 
       {/* Modal Add Warehouse */}
       {showAddWhModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto touch-scroll">
             <h3 className="text-sm font-bold text-slate-900">Add New Warehouse</h3>
             <form onSubmit={handleCreateWh} className="space-y-3">
               <div>
@@ -213,8 +215,8 @@ export const WarehouseSettings: React.FC<WarehouseSettingsProps> = ({
 
       {/* Modal Add Location */}
       {showAddLocModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto touch-scroll">
             <h3 className="text-sm font-bold text-slate-900">Add New Storage Rack / Floor</h3>
             <form onSubmit={handleCreateLoc} className="space-y-3">
               <div>

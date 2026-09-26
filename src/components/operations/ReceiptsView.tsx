@@ -23,15 +23,15 @@ export const ReceiptsView: React.FC<ReceiptsViewProps> = ({
   getProductStock,
 }) => {
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
       {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 text-white p-6 rounded-2xl border border-emerald-900/40">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 text-white p-4 sm:p-6 rounded-2xl border border-emerald-900/40">
         <div>
           <div className="flex items-center gap-2">
             <span className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
               <ArrowDownLeft className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-bold tracking-tight">Receipts (Incoming Goods)</h1>
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight">Receipts (Incoming Goods)</h1>
             <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300">
               + Stock Addition
             </span>
@@ -45,24 +45,24 @@ export const ReceiptsView: React.FC<ReceiptsViewProps> = ({
 
         <button
           onClick={onOpenCreate}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-950/40 transition-all shrink-0"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-950/40 transition-all shrink-0"
         >
           <Plus className="w-4 h-4" />
-          + Create Receipt
+          <span>+ Create Receipt</span>
         </button>
       </div>
 
       {/* Receipts Table */}
       <div className="odoo-card bg-white overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-4 sm:px-5 py-3 border-b border-slate-100 flex items-center justify-between">
           <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
             All Vendor Incoming Shipments ({receipts.length})
           </span>
           <span className="text-[11px] text-slate-400 font-mono">Status: Ready to Validate</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto touch-scroll">
+          <table className="w-full text-left text-xs min-w-[640px]">
             <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="py-3 px-4">Receipt Ref</th>

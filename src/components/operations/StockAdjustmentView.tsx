@@ -59,15 +59,15 @@ export const StockAdjustmentView: React.FC<StockAdjustmentViewProps> = ({
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
       {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-amber-950 via-slate-900 to-slate-900 text-white p-6 rounded-2xl border border-amber-900/40">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-amber-950 via-slate-900 to-slate-900 text-white p-4 sm:p-6 rounded-2xl border border-amber-900/40">
         <div>
           <div className="flex items-center gap-2">
             <span className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
               <SlidersHorizontal className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-bold tracking-tight">Stock Adjustments (Audit Reconciliation)</h1>
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight">Stock Adjustments (Audit Reconciliation)</h1>
             <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300">
               Physical Count vs Recorded Stock
             </span>
@@ -83,10 +83,10 @@ export const StockAdjustmentView: React.FC<StockAdjustmentViewProps> = ({
             setPhysicalCount(curr);
             setShowForm(!showForm);
           }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-lg shadow-amber-950/40 transition-all shrink-0"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-lg shadow-amber-950/40 transition-all shrink-0"
         >
           <Plus className="w-4 h-4" />
-          + Perform Stock Count
+          <span>+ Perform Stock Count</span>
         </button>
       </div>
 
@@ -240,8 +240,8 @@ export const StockAdjustmentView: React.FC<StockAdjustmentViewProps> = ({
           <span className="text-[11px] text-slate-400 font-mono">Logged to Virtual Scrap/Surplus</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto touch-scroll">
+          <table className="w-full text-left text-xs min-w-[640px]">
             <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="py-3 px-4">Audit Ref</th>

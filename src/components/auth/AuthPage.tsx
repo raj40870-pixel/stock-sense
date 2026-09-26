@@ -401,15 +401,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-3 sm:p-6 relative overflow-y-auto font-sans touch-scroll">
       {/* Decorative Background Elements */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-purple-900/30 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[#714B67]/30 rounded-full blur-3xl pointer-events-none" />
 
       {/* Main Container */}
-      <div className="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 relative z-10">
-        {/* Left Hero Panel (StockSense IMS Overview) */}
-        <div className="md:col-span-5 bg-gradient-to-br from-[#714B67] via-slate-900 to-slate-950 p-8 text-white flex flex-col justify-between border-b md:border-b-0 md:border-r border-slate-800">
+      <div className="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 relative z-10 my-4">
+        {/* Left Hero Panel (Desktop & Tablet only) */}
+        <div className="hidden md:flex md:col-span-5 bg-gradient-to-br from-[#714B67] via-slate-900 to-slate-950 p-8 text-white flex-col justify-between border-b md:border-b-0 md:border-r border-slate-800">
           <div>
             <div className="flex items-center gap-2.5 mb-6">
               <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center font-bold text-white shadow-lg">
@@ -472,7 +472,25 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         </div>
 
         {/* Right Form Panel */}
-        <div className="md:col-span-7 p-8 bg-slate-900 flex flex-col justify-center">
+        <div className="col-span-12 md:col-span-7 p-4 sm:p-8 bg-slate-900 flex flex-col justify-center">
+          {/* Mobile Header Banner */}
+          <div className="md:hidden flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-purple-700 text-white flex items-center justify-center font-bold shadow">
+                <Package className="w-4 h-4 text-purple-200" />
+              </div>
+              <div>
+                <span className="font-extrabold text-white text-base">StockSense</span>
+                <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-900/60 text-purple-300 border border-purple-700/50">
+                  IMS
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              InsForge BaaS
+            </div>
+          </div>
           {/* Navigation Mode Tabs */}
           <div className="flex items-center gap-2 p-1 bg-slate-950/60 rounded-xl border border-slate-800 mb-6 max-w-sm">
             <button

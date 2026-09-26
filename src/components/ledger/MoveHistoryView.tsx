@@ -53,16 +53,16 @@ export const MoveHistoryView: React.FC<MoveHistoryViewProps> = ({ moves }) => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200">
         <div>
           <div className="flex items-center gap-2">
             <span className="p-2 rounded-xl bg-cyan-50 text-cyan-700 border border-cyan-100">
               <History className="w-5 h-5" />
             </span>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Move History (Stock Ledger)</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900">Move History (Stock Ledger)</h1>
               <span className="text-xs text-slate-500">Immutable chronological audit trail</span>
             </div>
           </div>
@@ -73,14 +73,15 @@ export const MoveHistoryView: React.FC<MoveHistoryViewProps> = ({ moves }) => {
 
         <button
           onClick={exportCSV}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-sm transition-all shrink-0"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-sm transition-all shrink-0"
         >
-          <Download className="w-4 h-4" /> Export Audit CSV
+          <Download className="w-4 h-4" />
+          <span>Export Audit CSV</span>
         </button>
       </div>
 
       {/* Filters Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-xl border border-slate-200">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -88,7 +89,7 @@ export const MoveHistoryView: React.FC<MoveHistoryViewProps> = ({ moves }) => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search Reference, SKU, or Location..."
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-[#714B67]"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-[#714B67]"
           />
         </div>
 
@@ -96,7 +97,7 @@ export const MoveHistoryView: React.FC<MoveHistoryViewProps> = ({ moves }) => {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 outline-none"
+            className="w-full sm:w-auto text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-slate-700 outline-none"
           >
             <option value="all">All Movements</option>
             <option value="receipt">Receipts (+Stock)</option>
@@ -109,15 +110,15 @@ export const MoveHistoryView: React.FC<MoveHistoryViewProps> = ({ moves }) => {
 
       {/* Ledger Table */}
       <div className="odoo-card bg-white overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-4 sm:px-5 py-3 border-b border-slate-100 flex items-center justify-between">
           <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
             Stock Moves Ledger ({filteredMoves.length} records)
           </span>
           <span className="text-[11px] text-slate-400 font-mono">Sorted: Most Recent First</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto touch-scroll">
+          <table className="w-full text-left text-xs min-w-[700px]">
             <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="py-3 px-4">Date & Time</th>

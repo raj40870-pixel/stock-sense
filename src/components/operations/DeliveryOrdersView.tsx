@@ -25,15 +25,15 @@ export const DeliveryOrdersView: React.FC<DeliveryOrdersViewProps> = ({
   getProductStock,
 }) => {
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
       {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-purple-950 via-slate-900 to-slate-900 text-white p-6 rounded-2xl border border-purple-900/40">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-purple-950 via-slate-900 to-slate-900 text-white p-4 sm:p-6 rounded-2xl border border-purple-900/40">
         <div>
           <div className="flex items-center gap-2">
             <span className="p-1.5 rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/30">
               <ArrowUpRight className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-bold tracking-tight">Delivery Orders (Outgoing Stock)</h1>
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight">Delivery Orders (Outgoing Stock)</h1>
             <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300">
               - Stock Deduction
             </span>
@@ -47,24 +47,24 @@ export const DeliveryOrdersView: React.FC<DeliveryOrdersViewProps> = ({
 
         <button
           onClick={onOpenCreate}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-950/40 transition-all shrink-0"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-950/40 transition-all shrink-0"
         >
           <Plus className="w-4 h-4" />
-          + Create Delivery Order
+          <span>+ Create Delivery Order</span>
         </button>
       </div>
 
       {/* Deliveries Table */}
       <div className="odoo-card bg-white overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-4 sm:px-5 py-3 border-b border-slate-100 flex items-center justify-between">
           <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
             All Outgoing Dispatches ({deliveries.length})
           </span>
           <span className="text-[11px] text-slate-400 font-mono">Process: Pick → Pack → Validate</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto touch-scroll">
+          <table className="w-full text-left text-xs min-w-[640px]">
             <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="py-3 px-4">Order Ref</th>

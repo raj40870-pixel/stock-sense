@@ -155,14 +155,26 @@ export const App: React.FC = () => {
     );
   }
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
-    <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
-      {/* Left Sidebar Navigation */}
+    <div className="flex h-screen bg-slate-100 overflow-hidden font-sans relative">
+      {/* Mobile Drawer Backdrop Overlay */}
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 md:hidden animate-in fade-in"
+        />
+      )}
+
+      {/* Responsive Left Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         currentUser={user}
         lowStockCount={lowStockProducts.length}
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
         onLogout={() => {
           inventoryStore.logout();
           showToast('Logged out of StockSense.');
@@ -171,7 +183,7 @@ export const App: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Topbar */}
+        {/* Topbar with Mobile Hamburger */}
         <Topbar
           currentUser={user}
           onLogout={() => {
@@ -189,35 +201,36 @@ export const App: React.FC = () => {
             setSearchQuery(p.sku);
           }}
           onQuickAction={handleOpenNewOp}
+          onToggleMobileMenu={() => setMobileMenuOpen((prev) => !prev)}
         />
 
         {/* Dynamic View Panels */}
-        <main className="flex-1 overflow-y-auto bg-slate-50">
-          {/* Role Mode Banner for Staff vs Manager vs User (Read-only, no role switching) */}
+        <main className="flex-1 overflow-y-auto bg-slate-50 touch-scroll">
+          {/* Role Mode Banner for Staff vs Manager vs User (Read-only, responsive) */}
           {user.role === 'warehouse_staff' ? (
-            <div className="bg-blue-600/10 border-b border-blue-500/20 px-6 py-2.5 flex items-center gap-2 text-xs text-blue-950">
-              <span className="px-2 py-0.5 rounded font-bold bg-blue-600 text-white text-[10px] uppercase tracking-wider">
+            <div className="bg-blue-600/10 border-b border-blue-500/20 px-3 sm:px-6 py-2 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs text-blue-950">
+              <span className="px-2 py-0.5 rounded font-bold bg-blue-600 text-white text-[10px] uppercase tracking-wider self-start sm:self-auto shrink-0">
                 📦 Warehouse Staff Mode
               </span>
-              <span className="font-medium">
+              <span className="font-medium text-slate-700 truncate">
                 Floor Operational Access: Receipts, Picking, Packing, Internal Transfers & Physical Count Audit enabled.
               </span>
             </div>
           ) : user.role === 'general_user' ? (
-            <div className="bg-emerald-600/10 border-b border-emerald-500/20 px-6 py-2.5 flex items-center gap-2 text-xs text-emerald-950">
-              <span className="px-2 py-0.5 rounded font-bold bg-emerald-600 text-white text-[10px] uppercase tracking-wider">
+            <div className="bg-emerald-600/10 border-b border-emerald-500/20 px-3 sm:px-6 py-2 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs text-emerald-950">
+              <span className="px-2 py-0.5 rounded font-bold bg-emerald-600 text-white text-[10px] uppercase tracking-wider self-start sm:self-auto shrink-0">
                 👤 General User Mode
               </span>
-              <span className="font-medium text-slate-700">
+              <span className="font-medium text-slate-700 truncate">
                 Viewer Access: Live Catalog Browsing, Stock Quant Visibility & Operational Status Tracking.
               </span>
             </div>
           ) : (
-            <div className="bg-purple-900/10 border-b border-purple-500/20 px-6 py-2 flex items-center gap-2 text-xs text-purple-950">
-              <span className="px-2 py-0.5 rounded font-bold bg-[#714B67] text-white text-[10px] uppercase tracking-wider">
+            <div className="bg-purple-900/10 border-b border-purple-500/20 px-3 sm:px-6 py-2 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs text-purple-950">
+              <span className="px-2 py-0.5 rounded font-bold bg-[#714B67] text-white text-[10px] uppercase tracking-wider self-start sm:self-auto shrink-0">
                 👔 Inventory Manager Mode
               </span>
-              <span className="font-medium text-slate-700">
+              <span className="font-medium text-slate-700 truncate">
                 Full Administrative Rights: Reordering Rules, Master Catalog, Multi-Warehouse Settings & Approvals.
               </span>
             </div>
