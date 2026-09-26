@@ -24,7 +24,7 @@ interface AuthPageProps {
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
-  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'otp_reset'>('signin');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'otp_reset'>('signup');
 
   // Password Visibility States
   const [showSignInPassword, setShowSignInPassword] = useState(false);
@@ -210,17 +210,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
           <div className="flex items-center gap-2 p-1 bg-slate-950/60 rounded-xl border border-slate-800 mb-6 max-w-sm">
             <button
               onClick={() => {
-                setAuthMode('signin');
-                setErrorMsg(null);
-              }}
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                authMode === 'signin' ? 'bg-[#714B67] text-white shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => {
                 setAuthMode('signup');
                 setErrorMsg(null);
               }}
@@ -229,6 +218,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
               }`}
             >
               Create Account
+            </button>
+            <button
+              onClick={() => {
+                setAuthMode('signin');
+                setErrorMsg(null);
+              }}
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                authMode === 'signin' ? 'bg-[#714B67] text-white shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Sign In
             </button>
             <button
               onClick={() => {

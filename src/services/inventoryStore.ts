@@ -10,6 +10,7 @@ import {
   StockMove,
   StockQuant,
   UserProfile,
+  UserRole,
   Warehouse,
 } from '../types';
 
@@ -34,16 +35,7 @@ export interface StoredUserAccount {
   warehouseId?: string;
 }
 
-const DEFAULT_ACCOUNTS: StoredUserAccount[] = [
-  {
-    id: 'usr-k69117842',
-    name: 'Kamal',
-    email: 'k69117842@gmail.com',
-    password: 'password123',
-    role: 'inventory_manager',
-    warehouseId: 'wh-1',
-  },
-];
+const DEFAULT_ACCOUNTS: StoredUserAccount[] = [];
 
 // Initial Seed Data
 const DEFAULT_WAREHOUSES: Warehouse[] = [
@@ -404,13 +396,19 @@ class InventoryStore {
       const data = localStorage.getItem(STORAGE_KEYS.USER);
       if (!data) return null;
       const user: UserProfile = JSON.parse(data);
-      // Clean up old fake demo accounts in current session
-      const fakeEmails = ['manager@stocksense.io', 'staff@stocksense.io', 'kamaljit.manager@stocksense.io'];
-      if (user.email && fakeEmails.includes(user.email.toLowerCase())) {
-        user.email = 'k69117842@gmail.com';
-        user.name = 'Kamal';
-        user.role = 'inventory_manager';
-        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+      // Clean up any old demo/legacy accounts completely as requested by user
+      const legacyEmails = [
+        'manager@stocksense.io',
+        'staff@stocksense.io',
+        'kamaljit.manager@stocksense.io',
+        'k69117842@gmail.com',
+        'kamaljit444501@gmail.com',
+        'raj40870@gmail.com',
+        'kamaljitlpu27@gmail.com',
+      ];
+      if (user.email && legacyEmails.includes(user.email.toLowerCase())) {
+        localStorage.removeItem(STORAGE_KEYS.USER);
+        return null;
       }
       return user;
     } catch {
@@ -454,27 +452,29 @@ class InventoryStore {
       const data = localStorage.getItem(STORAGE_KEYS.ACCOUNTS);
       let accounts: StoredUserAccount[] = data ? JSON.parse(data) : [];
 
-      // Filter out any fake demo accounts
-      const fakeEmails = [
+      // Completely purge all previous accounts as requested: user will register afresh
+      const legacyEmails = [
         'manager@stocksense.io',
         'staff@stocksense.io',
         'kamaljit.manager@stocksense.io',
+        'k69117842@gmail.com',
+        'kamaljit444501@gmail.com',
+        'raj40870@gmail.com',
+        'kamaljitlpu27@gmail.com',
       ];
-      accounts = accounts.filter(a => !fakeEmails.includes(a.email.toLowerCase()));
-
-      // Ensure default registered accounts exist
-      DEFAULT_ACCOUNTS.forEach((defAcc) => {
-        const idx = accounts.findIndex(a => a.email.toLowerCase() === defAcc.email.toLowerCase());
-        if (idx === -1) {
-          accounts.push(defAcc);
-        }
-      });
+      accounts = accounts.filter(a => !legacyEmails.includes(a.email.toLowerCase()));
 
       localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
       return accounts;
     } catch {
-      return DEFAULT_ACCOUNTS;
+      return [];
     }
+  }
+
+  public clearAllAccounts() {
+    localStorage.removeItem(STORAGE_KEYS.ACCOUNTS);
+    localStorage.removeItem(STORAGE_KEYS.USER);
+    this.notify();
   }
 
   public registerAccount(
