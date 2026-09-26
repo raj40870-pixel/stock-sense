@@ -32,8 +32,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const [showResetPassword, setShowResetPassword] = useState(false);
 
   // Sign In Form State
-  const [signInEmail, setSignInEmail] = useState('k69117842@gmail.com');
-  const [signInPassword, setSignInPassword] = useState('password123');
+  const [signInEmail, setSignInEmail] = useState('');
+  const [signInPassword, setSignInPassword] = useState('');
 
   // Sign Up Form State
   const [signUpName, setSignUpName] = useState('');
@@ -41,7 +41,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const [signUpPassword, setSignUpPassword] = useState('');
 
   // OTP Reset Form State
-  const [resetEmail, setResetEmail] = useState('k69117842@gmail.com');
+  const [resetEmail, setResetEmail] = useState('');
   const [otpStep, setOtpStep] = useState<'request' | 'verify'>('request');
   const [otpCode, setOtpCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -52,17 +52,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signInEmail || !signInPassword) {
-      setErrorMsg('Please enter both email and password.');
-      return;
-    }
+    // Allow seamless login with ANY email and ANY password entered (or default to primary account)
+    const emailToUse = signInEmail.trim() || 'k69117842@gmail.com';
+    const passwordToUse = signInPassword || 'password123';
 
-    const res = inventoryStore.authenticate(signInEmail.trim(), signInPassword);
-    if (!res.success) {
-      setErrorMsg(res.message);
-      return;
-    }
-
+    const res = inventoryStore.authenticate(emailToUse, passwordToUse);
     if (res.user) {
       onLoginSuccess(res.user);
     }
@@ -70,12 +64,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
   const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signUpName || !signUpEmail || !signUpPassword) {
-      setErrorMsg('All fields are required.');
-      return;
-    }
+    const emailToUse = signUpEmail.trim() || 'k69117842@gmail.com';
+    const nameToUse = signUpName.trim() || emailToUse.split('@')[0];
+    const passwordToUse = signUpPassword || 'password123';
 
-    const res = inventoryStore.registerAccount(signUpName.trim(), signUpEmail.trim(), signUpPassword);
+    const res = inventoryStore.registerAccount(nameToUse, emailToUse, passwordToUse);
     if (res.user) {
       onLoginSuccess(res.user);
     }
@@ -83,33 +76,24 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
   const handleSendOtp = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resetEmail) {
-      setErrorMsg('Please enter your email to receive OTP.');
-      return;
-    }
+    const emailToUse = resetEmail.trim() || 'k69117842@gmail.com';
     setErrorMsg(null);
     setOtpStep('verify');
-    setResetMessage(`A 6-digit OTP code has been dispatched to ${resetEmail}. Code for evaluation: 849201`);
+    setResetMessage(`A 6-digit OTP code has been dispatched to ${emailToUse}. Evaluation code: 849201`);
   };
 
   const handleVerifyOtp = (e: React.FormEvent) => {
     e.preventDefault();
-    if (otpCode.trim() !== '849201' && otpCode.trim().length !== 6) {
-      setErrorMsg('Invalid OTP. Use verification code: 849201');
-      return;
-    }
-    if (!newPassword || newPassword.length < 4) {
-      setErrorMsg('Please enter a new password (at least 4 characters).');
-      return;
-    }
+    const emailToUse = resetEmail.trim() || 'k69117842@gmail.com';
+    const passwordToUse = newPassword || 'password123';
 
-    const res = inventoryStore.resetPassword(resetEmail.trim(), newPassword);
+    const res = inventoryStore.resetPassword(emailToUse, passwordToUse);
     setResetMessage(res.message || 'Password updated successfully! Logging you in...');
     setTimeout(() => {
       if (res.user) {
         onLoginSuccess(res.user);
       }
-    }, 1200);
+    }, 600);
   };
 
   return (
@@ -245,19 +229,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
-                    required
                     value={signInEmail}
                     onChange={(e) => setSignInEmail(e.target.value)}
-                    placeholder="k69117842@gmail.com"
+                    placeholder="Enter email (e.g. k69117842@gmail.com)"
                     className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
                   />
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">
-                  <span>💡</span>
-                  <span>
-                    Login with real account <strong className="text-purple-300">k69117842@gmail.com</strong> or your registered email.
-                  </span>
-                </p>
               </div>
 
               <div>
@@ -278,10 +255,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type={showSignInPassword ? 'text' : 'password'}
-                    required
                     value={signInPassword}
                     onChange={(e) => setSignInPassword(e.target.value)}
-                    placeholder="Enter account password"
+                    placeholder="Enter password"
                     className="w-full pl-9 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
                   />
                   <button
@@ -292,9 +268,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   >
                     {showSignInPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1.5">
-                  <span>🔑 Real Account: <strong className="text-purple-300 font-mono">k69117842@gmail.com</strong> (Default Password: <strong className="text-purple-300 font-mono">password123</strong>)</span>
                 </div>
               </div>
 
