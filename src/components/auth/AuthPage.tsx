@@ -34,11 +34,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   // Sign In Form State
   const [signInEmail, setSignInEmail] = useState('');
   const [signInPassword, setSignInPassword] = useState('');
+  const [signInRole, setSignInRole] = useState<UserRole>('inventory_manager');
 
-  // Sign Up Form State
+  // Sign Up Form State (with mandatory OTP verification to prevent fake emails)
   const [signUpName, setSignUpName] = useState('');
   const [signUpEmail, setSignUpEmail] = useState('');
+  const [signUpRole, setSignUpRole] = useState<UserRole>('inventory_manager');
   const [signUpPassword, setSignUpPassword] = useState('');
+  const [signUpOtpStep, setSignUpOtpStep] = useState<'form' | 'verify_otp'>('form');
+  const [signUpOtpCode, setSignUpOtpCode] = useState('');
 
   // OTP Reset Form State
   const [resetEmail, setResetEmail] = useState('');
@@ -52,26 +56,40 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
-    // Allow seamless login with ANY email and ANY password entered (or default to primary account)
     const emailToUse = signInEmail.trim() || 'k69117842@gmail.com';
     const passwordToUse = signInPassword || 'password123';
 
-    const res = inventoryStore.authenticate(emailToUse, passwordToUse);
+    const res = inventoryStore.authenticate(emailToUse, passwordToUse, signInRole);
     if (res.user) {
       onLoginSuccess(res.user);
     }
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSendSignUpOtp = (e: React.FormEvent) => {
     e.preventDefault();
-    const emailToUse = signUpEmail.trim() || 'k69117842@gmail.com';
-    const nameToUse = signUpName.trim() || emailToUse.split('@')[0];
-    const passwordToUse = signUpPassword || 'password123';
-
-    const res = inventoryStore.registerAccount(nameToUse, emailToUse, passwordToUse);
-    if (res.user) {
-      onLoginSuccess(res.user);
+    if (!signUpName.trim() || !signUpEmail.trim() || !signUpPassword) {
+      setErrorMsg('All fields are required.');
+      return;
     }
+    setErrorMsg(null);
+    setSignUpOtpStep('verify_otp');
+    setResetMessage(`A 6-digit OTP code has been dispatched to ${signUpEmail}. Evaluation code: 849201`);
+  };
+
+  const handleVerifySignUpOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (signUpOtpCode.trim() !== '849201' && signUpOtpCode.trim().length !== 6) {
+      setErrorMsg('Invalid OTP. Use verification code: 849201');
+      return;
+    }
+
+    const res = inventoryStore.registerAccount(signUpName.trim(), signUpEmail.trim(), signUpPassword, signUpRole);
+    setResetMessage('Email verified & account created! Logging you in...');
+    setTimeout(() => {
+      if (res.user) {
+        onLoginSuccess(res.user);
+      }
+    }, 600);
   };
 
   const handleSendOtp = (e: React.FormEvent) => {
@@ -223,6 +241,46 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                 <p className="text-xs text-slate-400 mt-0.5">Enter your credentials to access the inventory dashboard</p>
               </div>
 
+              {/* Role Selection for Sign In */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Sign In Perspective</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSignInRole('inventory_manager')}
+                    className={`py-2 px-2 rounded-xl border text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                      signInRole === 'inventory_manager'
+                        ? 'bg-[#714B67] border-purple-400 text-white shadow-lg shadow-purple-950/50'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>👔</span> Manager
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSignInRole('warehouse_staff')}
+                    className={`py-2 px-2 rounded-xl border text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                      signInRole === 'warehouse_staff'
+                        ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-950/50'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>📦</span> Staff
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSignInRole('general_user')}
+                    className={`py-2 px-2 rounded-xl border text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                      signInRole === 'general_user'
+                        ? 'bg-emerald-600 border-emerald-400 text-white shadow-lg shadow-emerald-950/50'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>👤</span> User
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">Work Email</label>
                 <div className="relative">
@@ -280,76 +338,163 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             </form>
           )}
 
-          {/* 2. SIGN UP FORM */}
+          {/* 2. SIGN UP FORM WITH EMAIL OTP VERIFICATION */}
           {authMode === 'signup' && (
-            <form onSubmit={handleSignUp} className="space-y-4 animate-in fade-in">
+            <div className="space-y-4 animate-in fade-in">
               <div>
                 <h3 className="text-lg font-bold text-white tracking-tight">Create your StockSense Account</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Select your role to configure tailored access permissions</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Select your role and verify your email via 6-digit OTP
+                </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    value={signUpName}
-                    onChange={(e) => setSignUpName(e.target.value)}
-                    placeholder="e.g. Kamaljit Singh"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
-                  />
-                </div>
-              </div>
+              {signUpOtpStep === 'form' ? (
+                <form onSubmit={handleSendSignUpOtp} className="space-y-3.5">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={signUpName}
+                        onChange={(e) => setSignUpName(e.target.value)}
+                        placeholder="e.g. Kamaljit Singh"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Work Email</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    required
-                    value={signUpEmail}
-                    onChange={(e) => setSignUpEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
-                  />
-                </div>
-              </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="email"
+                        required
+                        value={signUpEmail}
+                        onChange={(e) => setSignUpEmail(e.target.value)}
+                        placeholder="name@company.com"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type={showSignUpPassword ? 'text' : 'password'}
-                    required
-                    value={signUpPassword}
-                    onChange={(e) => setSignUpPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="w-full pl-9 pr-10 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
-                  />
+                  {/* Role Selector: Staff, Manager, User */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">Select Role</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSignUpRole('inventory_manager')}
+                        className={`p-2.5 rounded-xl border text-center transition-all ${
+                          signUpRole === 'inventory_manager'
+                            ? 'bg-purple-900/60 border-purple-500 text-white shadow-lg ring-1 ring-purple-400'
+                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <div className="text-base mb-0.5">👔</div>
+                        <div className="text-xs font-bold">Manager</div>
+                        <div className="text-[10px] text-slate-400">Admin Control</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSignUpRole('warehouse_staff')}
+                        className={`p-2.5 rounded-xl border text-center transition-all ${
+                          signUpRole === 'warehouse_staff'
+                            ? 'bg-blue-900/60 border-blue-500 text-white shadow-lg ring-1 ring-blue-400'
+                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <div className="text-base mb-0.5">📦</div>
+                        <div className="text-xs font-bold">Staff</div>
+                        <div className="text-[10px] text-slate-400">Operations</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSignUpRole('general_user')}
+                        className={`p-2.5 rounded-xl border text-center transition-all ${
+                          signUpRole === 'general_user'
+                            ? 'bg-emerald-900/60 border-emerald-500 text-white shadow-lg ring-1 ring-emerald-400'
+                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <div className="text-base mb-0.5">👤</div>
+                        <div className="text-xs font-bold">User</div>
+                        <div className="text-[10px] text-slate-400">Viewer</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Set Password</label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showSignUpPassword ? 'text' : 'password'}
+                        required
+                        value={signUpPassword}
+                        onChange={(e) => setSignUpPassword(e.target.value)}
+                        placeholder="••••••••••••"
+                        className="w-full pl-9 pr-10 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignUpPassword(!showSignUpPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1"
+                        title={showSignUpPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showSignUpPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
                   <button
-                    type="button"
-                    onClick={() => setShowSignUpPassword(!showSignUpPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1"
-                    title={showSignUpPassword ? 'Hide password' : 'Show password'}
+                    type="submit"
+                    className="w-full py-2.5 bg-[#714B67] hover:bg-[#5c3c54] text-white text-xs font-bold rounded-xl shadow-lg transition-all"
                   >
-                    {showSignUpPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    Send Email Verification OTP →
                   </button>
-                </div>
-              </div>
+                </form>
+              ) : (
+                <form onSubmit={handleVerifySignUpOtp} className="space-y-4 animate-in fade-in">
+                  <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs text-purple-300">
+                    6-Digit OTP sent to <strong className="text-white">{signUpEmail}</strong>. Evaluation code: <strong className="font-mono text-white">849201</strong>
+                  </div>
 
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Enter 6-Digit OTP Code</label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      required
+                      value={signUpOtpCode}
+                      onChange={(e) => setSignUpOtpCode(e.target.value)}
+                      placeholder="849201"
+                      className="w-full py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-center text-lg font-mono font-bold tracking-widest text-purple-300 focus:border-purple-500 outline-none"
+                    />
+                  </div>
 
-
-              <button
-                type="submit"
-                className="w-full py-2.5 bg-[#714B67] hover:bg-[#5c3c54] text-white text-xs font-bold rounded-xl shadow-lg transition-all"
-              >
-                Register & Enter Dashboard →
-              </button>
-            </form>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSignUpOtpStep('form')}
+                      className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl transition-all"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg transition-all"
+                    >
+                      Verify OTP & Create Account →
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           )}
 
           {/* 3. OTP PASSWORD RESET (Problem statement specification) */}

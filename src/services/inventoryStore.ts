@@ -37,10 +37,34 @@ export interface StoredUserAccount {
 const DEFAULT_ACCOUNTS: StoredUserAccount[] = [
   {
     id: 'usr-k69117842',
-    name: 'Kamaljit Singh',
+    name: 'Kamal',
     email: 'k69117842@gmail.com',
     password: 'password123',
     role: 'inventory_manager',
+    warehouseId: 'wh-1',
+  },
+  {
+    id: 'usr-kamaljit444501',
+    name: 'Kamaljit',
+    email: 'kamaljit444501@gmail.com',
+    password: 'password123',
+    role: 'inventory_manager',
+    warehouseId: 'wh-1',
+  },
+  {
+    id: 'usr-raj40870',
+    name: 'Raj kumar',
+    email: 'raj40870@gmail.com',
+    password: 'password123',
+    role: 'warehouse_staff',
+    warehouseId: 'wh-1',
+  },
+  {
+    id: 'usr-kamaljitlpu27',
+    name: 'Kamaljit lpu',
+    email: 'kamaljitlpu27@gmail.com',
+    password: 'password123',
+    role: 'general_user',
     warehouseId: 'wh-1',
   },
 ];
@@ -404,11 +428,11 @@ class InventoryStore {
       const data = localStorage.getItem(STORAGE_KEYS.USER);
       if (!data) return null;
       const user: UserProfile = JSON.parse(data);
-      // Clean up old fake accounts in current session
-      const fakeEmails = ['manager@stocksense.io', 'staff@stocksense.io', 'kamaljit.manager@stocksense.io', 'kamaljit444501@gmail.com'];
+      // Clean up old fake demo accounts in current session
+      const fakeEmails = ['manager@stocksense.io', 'staff@stocksense.io', 'kamaljit.manager@stocksense.io'];
       if (user.email && fakeEmails.includes(user.email.toLowerCase())) {
         user.email = 'k69117842@gmail.com';
-        user.name = 'Kamaljit Singh';
+        user.name = 'Kamal';
         user.role = 'inventory_manager';
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
       }
@@ -428,11 +452,17 @@ class InventoryStore {
     this.notify();
   }
 
-  public setUserRole(role: 'inventory_manager' | 'warehouse_staff') {
+  public setUserRole(role: UserRole) {
     const user = this.getUser();
     if (user) {
       user.role = role;
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+      const accounts = this.getAccounts();
+      const acc = accounts.find(a => a.email.toLowerCase() === user.email.toLowerCase());
+      if (acc) {
+        acc.role = role;
+        localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
+      }
       this.notify();
     }
   }
@@ -453,22 +483,16 @@ class InventoryStore {
         'manager@stocksense.io',
         'staff@stocksense.io',
         'kamaljit.manager@stocksense.io',
-        'kamaljit444501@gmail.com',
       ];
       accounts = accounts.filter(a => !fakeEmails.includes(a.email.toLowerCase()));
 
-      // Ensure the real user k69117842@gmail.com is present
-      const realAccIndex = accounts.findIndex(a => a.email.toLowerCase() === 'k69117842@gmail.com');
-      if (realAccIndex === -1) {
-        accounts.unshift({
-          id: 'usr-k69117842',
-          name: 'Kamaljit Singh',
-          email: 'k69117842@gmail.com',
-          password: 'password123',
-          role: 'inventory_manager',
-          warehouseId: 'wh-1',
-        });
-      }
+      // Ensure default registered accounts exist
+      DEFAULT_ACCOUNTS.forEach((defAcc) => {
+        const idx = accounts.findIndex(a => a.email.toLowerCase() === defAcc.email.toLowerCase());
+        if (idx === -1) {
+          accounts.push(defAcc);
+        }
+      });
 
       localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
       return accounts;
@@ -477,17 +501,24 @@ class InventoryStore {
     }
   }
 
-  public registerAccount(name: string, email: string, password: string): { success: boolean; message: string; user?: UserProfile } {
+  public registerAccount(
+    name: string,
+    email: string,
+    password: string,
+    selectedRole?: UserRole
+  ): { success: boolean; message: string; user?: UserProfile } {
     const accounts = this.getAccounts();
     const normalizedEmail = email.trim().toLowerCase();
 
     const existingIndex = accounts.findIndex(a => a.email.toLowerCase() === normalizedEmail);
-    const isStaff = normalizedEmail.includes('staff');
-    const role: UserRole = isStaff ? 'warehouse_staff' : 'inventory_manager';
+    const role: UserRole = selectedRole || (normalizedEmail.includes('staff') ? 'warehouse_staff' : 'inventory_manager');
 
     if (existingIndex !== -1) {
       accounts[existingIndex].password = password;
       accounts[existingIndex].name = name;
+      if (selectedRole) {
+        accounts[existingIndex].role = selectedRole;
+      }
       localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
       const user: UserProfile = {
         id: accounts[existingIndex].id,
@@ -523,7 +554,7 @@ class InventoryStore {
     return { success: true, message: 'Account registered successfully!', user };
   }
 
-  public authenticate(email: string, password?: string): { success: boolean; message: string; user?: UserProfile } {
+  public authenticate(email: string, password?: string, role?: UserRole): { success: boolean; message: string; user?: UserProfile } {
     const accounts = this.getAccounts();
     const normalizedEmail = (email || 'k69117842@gmail.com').trim().toLowerCase();
     const acc = accounts.find(a => a.email.toLowerCase() === normalizedEmail);
@@ -531,8 +562,11 @@ class InventoryStore {
     if (acc) {
       if (password) {
         acc.password = password;
-        localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
       }
+      if (role) {
+        acc.role = role;
+      }
+      localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
       const user: UserProfile = {
         id: acc.id,
         name: acc.name,
@@ -548,7 +582,25 @@ class InventoryStore {
     const isStaff = normalizedEmail.includes('staff');
     const rawName = normalizedEmail.split('@')[0].replace(/[._-]/g, ' ');
     const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-    return this.registerAccount(formattedName || 'Inventory User', normalizedEmail, password || 'password123');
+    const assignedRole: UserRole = role || (isStaff ? 'warehouse_staff' : 'inventory_manager');
+    return this.registerAccount(formattedName || 'Inventory User', normalizedEmail, password || 'password123', assignedRole);
+  }
+
+  public switchAccount(email: string): UserProfile | null {
+    const accounts = this.getAccounts();
+    const acc = accounts.find(a => a.email.toLowerCase() === email.trim().toLowerCase());
+    if (acc) {
+      const user: UserProfile = {
+        id: acc.id,
+        name: acc.name,
+        email: acc.email,
+        role: acc.role,
+        warehouseId: acc.warehouseId,
+      };
+      this.login(user);
+      return user;
+    }
+    return null;
   }
 
   public resetPassword(email: string, newPassword: string): { success: boolean; message: string; user?: UserProfile } {

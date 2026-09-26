@@ -178,6 +178,7 @@ export const App: React.FC = () => {
         <Topbar
           currentUser={user}
           onRoleChange={(role) => inventoryStore.setUserRole(role)}
+          onOpenAccountSwitcher={() => setIsAuthModalOpen(true)}
           warehouses={warehouses}
           selectedWarehouseId={selectedWarehouseId}
           onWarehouseChange={setSelectedWarehouseId}
@@ -193,40 +194,81 @@ export const App: React.FC = () => {
 
         {/* Dynamic View Panels */}
         <main className="flex-1 overflow-y-auto bg-slate-50">
-          {/* Role Mode Banner for Staff vs Manager */}
+          {/* Role Mode Banner for Staff vs Manager vs User */}
           {user.role === 'warehouse_staff' ? (
             <div className="bg-blue-600/10 border-b border-blue-500/20 px-6 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-blue-950">
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded font-bold bg-blue-600 text-white text-[10px] uppercase tracking-wider">
-                  Warehouse Staff Mode
+                  📦 Warehouse Staff Mode
                 </span>
                 <span className="font-medium">
                   Floor Operational Access: Receipts, Picking, Packing, Internal Transfers & Physical Count Audit enabled.
                 </span>
               </div>
-              <button
-                onClick={() => inventoryStore.setUserRole('inventory_manager')}
-                className="text-[11px] font-bold text-blue-700 hover:text-blue-900 underline shrink-0"
-              >
-                Switch to Manager View →
-              </button>
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  onClick={() => inventoryStore.setUserRole('inventory_manager')}
+                  className="text-[11px] font-bold text-blue-700 hover:text-blue-900 underline"
+                >
+                  Switch to Manager →
+                </button>
+                <button
+                  onClick={() => inventoryStore.setUserRole('general_user')}
+                  className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 underline"
+                >
+                  Switch to User →
+                </button>
+              </div>
+            </div>
+          ) : user.role === 'general_user' ? (
+            <div className="bg-emerald-600/10 border-b border-emerald-500/20 px-6 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-emerald-950">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded font-bold bg-emerald-600 text-white text-[10px] uppercase tracking-wider">
+                  👤 General User Mode
+                </span>
+                <span className="font-medium text-slate-700">
+                  Viewer Access: Live Catalog Browsing, Stock Quant Visibility & Operational Status Tracking.
+                </span>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  onClick={() => inventoryStore.setUserRole('inventory_manager')}
+                  className="text-[11px] font-bold text-purple-700 hover:text-purple-900 underline"
+                >
+                  Switch to Manager →
+                </button>
+                <button
+                  onClick={() => inventoryStore.setUserRole('warehouse_staff')}
+                  className="text-[11px] font-bold text-blue-700 hover:text-blue-900 underline"
+                >
+                  Switch to Staff →
+                </button>
+              </div>
             </div>
           ) : (
             <div className="bg-purple-900/10 border-b border-purple-500/20 px-6 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-purple-950">
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded font-bold bg-[#714B67] text-white text-[10px] uppercase tracking-wider">
-                  Inventory Manager Mode
+                  👔 Inventory Manager Mode
                 </span>
                 <span className="font-medium text-slate-700">
                   Full Administrative Rights: Reordering Rules, Master Catalog, Multi-Warehouse Settings & Approvals.
                 </span>
               </div>
-              <button
-                onClick={() => inventoryStore.setUserRole('warehouse_staff')}
-                className="text-[11px] font-bold text-[#714B67] hover:underline shrink-0"
-              >
-                Test as Staff →
-              </button>
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  onClick={() => inventoryStore.setUserRole('warehouse_staff')}
+                  className="text-[11px] font-bold text-[#714B67] hover:underline"
+                >
+                  Test as Staff →
+                </button>
+                <button
+                  onClick={() => inventoryStore.setUserRole('general_user')}
+                  className="text-[11px] font-bold text-emerald-700 hover:underline"
+                >
+                  Test as User →
+                </button>
+              </div>
             </div>
           )}
 

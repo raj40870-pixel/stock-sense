@@ -9,11 +9,12 @@ import {
   Warehouse as WarehouseIcon,
   Plus,
 } from 'lucide-react';
-import { Product, UserProfile, Warehouse } from '../../types';
+import { Product, UserProfile, UserRole, Warehouse } from '../../types';
 
 interface TopbarProps {
   currentUser: UserProfile;
-  onRoleChange: (role: 'inventory_manager' | 'warehouse_staff') => void;
+  onRoleChange: (role: UserRole) => void;
+  onOpenAccountSwitcher?: () => void;
   warehouses: Warehouse[];
   selectedWarehouseId: string;
   onWarehouseChange: (id: string) => void;
@@ -27,6 +28,7 @@ interface TopbarProps {
 export const Topbar: React.FC<TopbarProps> = ({
   currentUser,
   onRoleChange,
+  onOpenAccountSwitcher,
   warehouses,
   selectedWarehouseId,
   onWarehouseChange,
@@ -142,17 +144,21 @@ export const Topbar: React.FC<TopbarProps> = ({
           >
             <span
               className={`w-2 h-2 rounded-full ${
-                currentUser.role === 'inventory_manager' ? 'bg-[#714B67]' : 'bg-blue-600'
+                currentUser.role === 'inventory_manager'
+                  ? 'bg-[#714B67]'
+                  : currentUser.role === 'warehouse_staff'
+                  ? 'bg-blue-600'
+                  : 'bg-emerald-600'
               }`}
             />
-            <span className="capitalize">{currentUser.role.replace('_', ' ')}</span>
+            <span className="capitalize">{currentUser.role === 'general_user' ? 'General User' : currentUser.role.replace('_', ' ')}</span>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </button>
 
           {showRoleDropdown && (
-            <div className="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl p-1.5 z-50">
+            <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2">
               <div className="px-2 py-1.5 text-[10px] uppercase font-bold tracking-wider text-slate-400">
-                Switch Perspective
+                Switch Role Perspective
               </div>
               <button
                 onClick={() => {
@@ -182,9 +188,37 @@ export const Topbar: React.FC<TopbarProps> = ({
                 📦 Warehouse Staff
                 <span className="block text-[10px] text-slate-400 font-normal">Transfers, Picking & Counting</span>
               </button>
+              <button
+                onClick={() => {
+                  onRoleChange('general_user');
+                  setShowRoleDropdown(false);
+                }}
+                className={`w-full text-left px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  currentUser.role === 'general_user'
+                    ? 'bg-emerald-50 text-emerald-700 font-bold'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                👤 General User
+                <span className="block text-[10px] text-slate-400 font-normal">Stock quants view & item tracking</span>
+              </button>
             </div>
           )}
         </div>
+
+        {/* Google-Style User Profile Avatar Button */}
+        <button
+          onClick={onOpenAccountSwitcher}
+          className="flex items-center gap-2 p-1 pr-2.5 rounded-full border border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 transition-all text-xs font-bold text-slate-700 shrink-0"
+          title="Switch Account & IAM Settings"
+        >
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#714B67] to-purple-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+            {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+          </div>
+          <span className="hidden sm:inline text-xs font-medium text-slate-700 max-w-[85px] truncate">
+            {currentUser.name ? currentUser.name.split(' ')[0] : 'Account'}
+          </span>
+        </button>
       </div>
     </header>
   );
