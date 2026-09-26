@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@insforge/sdk": "^1.5.2",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^22.13.4",
     "@types/react": "^18.3.18",

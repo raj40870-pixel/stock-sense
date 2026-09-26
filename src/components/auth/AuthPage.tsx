@@ -1,23 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Package,
   ShieldCheck,
-  UserCheck,
   Mail,
   Lock,
   User,
   KeyRound,
   ArrowRight,
   CheckCircle2,
-  Sparkles,
-  Layers,
   Warehouse as WarehouseIcon,
   ShieldAlert,
   Eye,
   EyeOff,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../../types';
 import { inventoryStore } from '../../services/inventoryStore';
+import { insforge } from '../../lib/insforge';
 
 interface AuthPageProps {
   onLoginSuccess: (user: UserProfile) => void;
@@ -35,7 +35,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const [signInEmail, setSignInEmail] = useState('');
   const [signInPassword, setSignInPassword] = useState('');
 
-  // Sign Up Form State (with mandatory OTP verification to prevent fake emails)
+  // Sign Up Form State (with real InsForge OTP verification)
   const [signUpName, setSignUpName] = useState('');
   const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpRole, setSignUpRole] = useState<UserRole>('inventory_manager');
@@ -48,95 +48,362 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const [otpStep, setOtpStep] = useState<'request' | 'verify'>('request');
   const [otpCode, setOtpCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
+
+  // Feedback & Loading
+  const [isLoading, setIsLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  // Error / Info
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // Timer countdown for OTP resend
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
-  const handleSignIn = (e: React.FormEvent) => {
+  // 1. SIGN IN HANDLER
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!signInEmail.trim() || !signInPassword) {
       setErrorMsg('Please enter both email and password.');
       return;
     }
 
-    const res = inventoryStore.authenticate(signInEmail.trim(), signInPassword);
-    if (!res.success) {
-      setErrorMsg(res.message);
-      return;
-    }
+    setIsLoading(true);
+    setErrorMsg(null);
+    setResetMessage(null);
 
-    if (res.user) {
-      onLoginSuccess(res.user);
+    const email = signInEmail.trim().toLowerCase();
+
+    try {
+      // Step A: Attempt authentication via InsForge SDK
+      const { data, error } = await insforge.auth.signInWithPassword({
+        email,
+        password: signInPassword,
+      });
+
+      if (error) {
+        // If unverified email
+        if (
+          error.message?.toLowerCase().includes('not verified') ||
+          error.message?.toLowerCase().includes('verification')
+        ) {
+          setErrorMsg('Your email is not verified yet. We have resent a verification code to your email.');
+          await insforge.auth.resendVerificationEmail({ email });
+          setSignUpEmail(email);
+          setSignUpOtpStep('verify_otp');
+          setAuthMode('signup');
+          setResendCooldown(60);
+          setIsLoading(false);
+          return;
+        }
+
+        // Check local store as fallback
+        const localAuth = inventoryStore.authenticate(email, signInPassword);
+        if (localAuth.success && localAuth.user) {
+          onLoginSuccess(localAuth.user);
+          setIsLoading(false);
+          return;
+        }
+
+        setErrorMsg(error.message || 'Invalid email or password.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Step B: Authenticated successfully with InsForge BaaS!
+      // Check if user exists in local store; if not, register locally
+      const accounts = inventoryStore.getAccounts();
+      const existing = accounts.find((a) => a.email.toLowerCase() === email);
+
+      let loggedInUser: UserProfile;
+      if (existing) {
+        existing.password = signInPassword;
+        inventoryStore.authenticate(email, signInPassword);
+        loggedInUser = {
+          id: existing.id,
+          name: existing.name,
+          email: existing.email,
+          role: existing.role,
+          warehouseId: existing.warehouseId,
+        };
+      } else {
+        const displayName =
+          (data?.user?.profile && typeof data.user.profile === 'object' && 'name' in data.user.profile
+            ? (data.user.profile.name as string)
+            : '') || email.split('@')[0];
+
+        const regRes = inventoryStore.registerAccount(
+          displayName,
+          email,
+          signInPassword,
+          'inventory_manager'
+        );
+        loggedInUser = regRes.user || {
+          id: data?.user?.id || `usr-${Date.now()}`,
+          name: displayName,
+          email,
+          role: 'inventory_manager',
+          warehouseId: 'wh-1',
+        };
+      }
+
+      setResetMessage('Login successful! Launching your StockSense workspace...');
+      setTimeout(() => {
+        onLoginSuccess(loggedInUser);
+      }, 500);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Network error occurred while connecting to InsForge.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSendSignUpOtp = (e: React.FormEvent) => {
+  // 2. SIGN UP: DISPATCH REAL OTP VIA INSFORGE
+  const handleSendSignUpOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signUpName.trim() || !signUpEmail.trim() || !signUpPassword) {
+    const name = signUpName.trim();
+    const email = signUpEmail.trim().toLowerCase();
+
+    if (!name || !email || !signUpPassword) {
       setErrorMsg('All fields are required.');
       return;
     }
+
+    if (signUpPassword.length < 6) {
+      setErrorMsg('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setIsLoading(true);
     setErrorMsg(null);
-    setSignUpOtpStep('verify_otp');
-    setResetMessage(`A 6-digit OTP code has been dispatched to ${signUpEmail}. Evaluation code: 849201`);
-  };
+    setResetMessage(null);
 
-  const handleVerifySignUpOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (signUpOtpCode.trim() !== '849201' && signUpOtpCode.trim().length !== 6) {
-      setErrorMsg('Invalid OTP. Use verification code: 849201');
-      return;
-    }
+    try {
+      const { data, error } = await insforge.auth.signUp({
+        email,
+        password: signUpPassword,
+        name,
+      });
 
-    const res = inventoryStore.registerAccount(signUpName.trim(), signUpEmail.trim(), signUpPassword, signUpRole);
-    setResetMessage('Email verified & account registered successfully! Logging you in...');
-    setTimeout(() => {
-      if (res.user) {
-        onLoginSuccess(res.user);
+      if (error) {
+        // If user already exists in InsForge
+        if (
+          error.message?.toLowerCase().includes('already registered') ||
+          error.message?.toLowerCase().includes('already exists')
+        ) {
+          // Attempt resending verification code if unverified
+          const resend = await insforge.auth.resendVerificationEmail({ email });
+          if (!resend.error) {
+            setSignUpOtpStep('verify_otp');
+            setResetMessage(
+              `An account with ${email} exists and is pending verification. A fresh 6-digit OTP code has been sent to your Gmail inbox!`
+            );
+            setResendCooldown(60);
+            setIsLoading(false);
+            return;
+          }
+          setErrorMsg('An account with this email is already registered and verified. Please go to Sign In.');
+          setIsLoading(false);
+          return;
+        }
+
+        setErrorMsg(error.message || 'Failed to initiate account creation. Please try again.');
+        setIsLoading(false);
+        return;
       }
-    }, 600);
+
+      // Success: Email verification OTP dispatched by InsForge!
+      setSignUpOtpStep('verify_otp');
+      setResetMessage(
+        `A 6-digit verification code has been dispatched to ${email}. Please check your Gmail Inbox and Spam/Junk folder.`
+      );
+      setResendCooldown(60);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Failed to dispatch email verification OTP.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSendOtp = (e: React.FormEvent) => {
+  // 3. SIGN UP: VERIFY REAL OTP VIA INSFORGE
+  const handleVerifySignUpOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resetEmail.trim() || !newPassword) {
-      setErrorMsg('Please enter your email and your new password.');
+    const email = signUpEmail.trim().toLowerCase();
+    const code = signUpOtpCode.trim();
+
+    if (code.length !== 6) {
+      setErrorMsg('Please enter the 6-digit numeric OTP code sent to your email.');
       return;
     }
-    const accounts = inventoryStore.getAccounts();
-    const acc = accounts.find((a) => a.email.toLowerCase() === resetEmail.trim().toLowerCase());
-    if (!acc) {
-      setErrorMsg(`No registered account found with email "${resetEmail.trim()}". Direct login without account creation is not allowed. Please click "Create Account" first.`);
-      return;
-    }
-    if (newPassword.length < 4) {
-      setErrorMsg('New password must be at least 4 characters.');
-      return;
-    }
+
+    setIsLoading(true);
     setErrorMsg(null);
-    setOtpStep('verify');
-    setResetMessage(`A 6-digit OTP code has been dispatched to ${resetEmail}. Evaluation code: 849201`);
+
+    try {
+      const { data, error } = await insforge.auth.verifyEmail({
+        email,
+        otp: code,
+      });
+
+      if (error) {
+        setErrorMsg(error.message || 'Invalid or expired OTP code. Please check your email or click "Resend Code".');
+        setIsLoading(false);
+        return;
+      }
+
+      // Success! Email verified in InsForge. Now register and activate in StockSense
+      const regRes = inventoryStore.registerAccount(
+        signUpName.trim(),
+        email,
+        signUpPassword,
+        signUpRole
+      );
+
+      setResetMessage('Email successfully verified! Your account is created. Logging you in...');
+      setTimeout(() => {
+        if (regRes.user) {
+          onLoginSuccess(regRes.user);
+        } else {
+          onLoginSuccess({
+            id: data?.user?.id || `usr-${Date.now()}`,
+            name: signUpName.trim(),
+            email,
+            role: signUpRole,
+            warehouseId: 'wh-1',
+          });
+        }
+      }, 700);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Verification failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  // Resend Sign Up Verification OTP
+  const handleResendSignUpOtp = async () => {
+    if (resendCooldown > 0 || isLoading) return;
+    const email = signUpEmail.trim().toLowerCase();
+    if (!email) return;
+
+    setIsLoading(true);
+    setErrorMsg(null);
+
+    try {
+      const { data, error } = await insforge.auth.resendVerificationEmail({ email });
+      if (error) {
+        setErrorMsg(error.message || 'Failed to resend verification code.');
+      } else {
+        setResetMessage(`A fresh 6-digit verification code has been dispatched to ${email}.`);
+        setResendCooldown(60);
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Failed to resend verification code.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 4. PASSWORD RESET: SEND OTP VIA INSFORGE
+  const handleSendResetOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otpCode.trim() !== '849201' && otpCode.trim().length !== 6) {
-      setErrorMsg('Invalid OTP. Use verification code: 849201');
+    const email = resetEmail.trim().toLowerCase();
+
+    if (!email) {
+      setErrorMsg('Please enter your registered email address.');
       return;
     }
 
-    const res = inventoryStore.resetPassword(resetEmail.trim(), newPassword);
-    if (!res.success) {
-      setErrorMsg(res.message);
+    setIsLoading(true);
+    setErrorMsg(null);
+    setResetMessage(null);
+
+    try {
+      const { data, error } = await insforge.auth.sendResetPasswordEmail({ email });
+      if (error) {
+        setErrorMsg(error.message || 'Failed to send password reset code.');
+        setIsLoading(false);
+        return;
+      }
+
+      setOtpStep('verify');
+      setResetMessage(
+        `A 6-digit password reset code has been dispatched to ${email}. Please check your Gmail Inbox & Spam folder.`
+      );
+      setResendCooldown(60);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Failed to send reset code.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 5. PASSWORD RESET: VERIFY OTP AND SET NEW PASSWORD
+  const handleVerifyResetOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = resetEmail.trim().toLowerCase();
+    const code = otpCode.trim();
+
+    if (code.length !== 6) {
+      setErrorMsg('Please enter the 6-digit OTP code.');
       return;
     }
-    setResetMessage(res.message || 'Password reset successfully! Logging you in...');
-    setTimeout(() => {
-      if (res.user) {
-        onLoginSuccess(res.user);
+
+    if (newPassword.length < 6) {
+      setErrorMsg('New password must be at least 6 characters long.');
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMsg(null);
+
+    try {
+      // Step A: Exchange code for reset token
+      const exchangeRes = await insforge.auth.exchangeResetPasswordToken({
+        email,
+        code,
+      });
+
+      if (exchangeRes.error || !exchangeRes.data?.token) {
+        setErrorMsg(exchangeRes.error?.message || 'Invalid or expired OTP code.');
+        setIsLoading(false);
+        return;
       }
-    }, 600);
+
+      // Step B: Set new password on InsForge BaaS
+      const resetRes = await insforge.auth.resetPassword({
+        newPassword,
+        otp: exchangeRes.data.token,
+      });
+
+      if (resetRes.error) {
+        setErrorMsg(resetRes.error.message || 'Failed to reset password.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Step C: Update password in local store as well
+      const localRes = inventoryStore.resetPassword(email, newPassword);
+
+      setResetMessage('Password reset successfully! Logging you in with your new credentials...');
+      setTimeout(() => {
+        if (localRes.user) {
+          onLoginSuccess(localRes.user);
+        } else {
+          setAuthMode('signin');
+          setSignInEmail(email);
+          setSignInPassword(newPassword);
+        }
+      }, 700);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Failed to reset password.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -147,7 +414,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
       {/* Main Container */}
       <div className="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 relative z-10">
-        {/* Left Hero Panel (Odoo & StockSense Showcase) */}
+        {/* Left Hero Panel (StockSense IMS Overview) */}
         <div className="md:col-span-5 bg-gradient-to-br from-[#714B67] via-slate-900 to-slate-950 p-8 text-white flex flex-col justify-between border-b md:border-b-0 md:border-r border-slate-800">
           <div>
             <div className="flex items-center gap-2.5 mb-6">
@@ -174,15 +441,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             <div className="space-y-3">
               <div className="flex items-start gap-2.5 text-xs text-purple-100">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span><strong>Inventory Managers:</strong> Reordering rules, catalog & approval rights.</span>
+                <span>
+                  <strong>Inventory Managers:</strong> Full catalog management, stock audits & approvals.
+                </span>
               </div>
               <div className="flex items-start gap-2.5 text-xs text-purple-100">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span><strong>Warehouse Staff:</strong> Receipts picking, shelving, and stock counting.</span>
+                <span>
+                  <strong>Warehouse Staff:</strong> Material receipts, shelving, and pick/pack dispatches.
+                </span>
               </div>
               <div className="flex items-start gap-2.5 text-xs text-purple-100">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span><strong>InsForge BaaS:</strong> PostgreSQL backend & realtime sync.</span>
+                <span>
+                  <strong>Verified Real OTPs:</strong> Direct 6-digit email codes dispatched via InsForge BaaS.
+                </span>
               </div>
             </div>
           </div>
@@ -209,9 +482,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
           {/* Navigation Mode Tabs */}
           <div className="flex items-center gap-2 p-1 bg-slate-950/60 rounded-xl border border-slate-800 mb-6 max-w-sm">
             <button
+              type="button"
               onClick={() => {
                 setAuthMode('signup');
                 setErrorMsg(null);
+                setResetMessage(null);
               }}
               className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                 authMode === 'signup' ? 'bg-[#714B67] text-white shadow' : 'text-slate-400 hover:text-white'
@@ -220,9 +495,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
               Create Account
             </button>
             <button
+              type="button"
               onClick={() => {
                 setAuthMode('signin');
                 setErrorMsg(null);
+                setResetMessage(null);
               }}
               className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                 authMode === 'signin' ? 'bg-[#714B67] text-white shadow' : 'text-slate-400 hover:text-white'
@@ -231,9 +508,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
               Sign In
             </button>
             <button
+              type="button"
               onClick={() => {
                 setAuthMode('otp_reset');
                 setErrorMsg(null);
+                setResetMessage(null);
               }}
               className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                 authMode === 'otp_reset' ? 'bg-[#714B67] text-white shadow' : 'text-slate-400 hover:text-white'
@@ -267,14 +546,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Work Email</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
+                    required
                     value={signInEmail}
                     onChange={(e) => setSignInEmail(e.target.value)}
-                    placeholder="Enter email (e.g. k69117842@gmail.com)"
+                    placeholder="Enter your email"
                     className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
                   />
                 </div>
@@ -286,7 +566,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   <button
                     type="button"
                     onClick={() => {
-                      setResetEmail(signInEmail || 'k69117842@gmail.com');
+                      setResetEmail(signInEmail);
                       setAuthMode('otp_reset');
                     }}
                     className="text-[11px] text-purple-400 hover:text-purple-300"
@@ -298,9 +578,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type={showSignInPassword ? 'text' : 'password'}
+                    required
                     value={signInPassword}
                     onChange={(e) => setSignInPassword(e.target.value)}
-                    placeholder="Enter password"
+                    placeholder="Enter your password"
                     className="w-full pl-9 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
                   />
                   <button
@@ -316,9 +597,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-[#714B67] hover:bg-[#5c3c54] text-white text-xs font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                disabled={isLoading}
+                className="w-full py-2.5 bg-[#714B67] hover:bg-[#5c3c54] disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
               >
-                Sign In & Launch Dashboard <ArrowRight className="w-4 h-4" />
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Signing in...
+                  </>
+                ) : (
+                  <>
+                    Sign In & Launch Dashboard <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
 
               <div className="pt-2 text-center border-t border-slate-800/80">
@@ -345,13 +635,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
               <div>
                 <h3 className="text-lg font-bold text-white tracking-tight">Create your StockSense Account</h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Select your permanent role and verify your email via 6-digit OTP
+                  Select your permanent role and verify your real email via 6-digit OTP
                 </p>
               </div>
 
               {signUpOtpStep === 'form' ? (
                 <form onSubmit={handleSendSignUpOtp} className="space-y-3.5">
-                  {/* Role Selector FIRST: Manager, Staff, User */}
+                  {/* Step 1: Role Selection */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-semibold text-slate-200">1. Select Your Role</label>
@@ -426,19 +716,23 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                         required
                         value={signUpEmail}
                         onChange={(e) => setSignUpEmail(e.target.value)}
-                        placeholder="name@company.com"
+                        placeholder="your-email@gmail.com"
                         className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">4. Set Password</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-xs font-semibold text-slate-300">4. Set Password</label>
+                      <span className="text-[10px] text-slate-400">Min 6 characters</span>
+                    </div>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type={showSignUpPassword ? 'text' : 'password'}
                         required
+                        minLength={6}
                         value={signUpPassword}
                         onChange={(e) => setSignUpPassword(e.target.value)}
                         placeholder="••••••••••••"
@@ -457,9 +751,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-[#714B67] hover:bg-[#5c3c54] text-white text-xs font-bold rounded-xl shadow-lg transition-all"
+                    disabled={isLoading}
+                    className="w-full py-2.5 bg-[#714B67] hover:bg-[#5c3c54] disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
                   >
-                    Send Email Verification OTP →
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Dispatching OTP to your email...
+                      </>
+                    ) : (
+                      <>Send Email Verification OTP →</>
+                    )}
                   </button>
 
                   <div className="pt-2 text-center border-t border-slate-800/80">
@@ -480,24 +781,52 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                 </form>
               ) : (
                 <form onSubmit={handleVerifySignUpOtp} className="space-y-4 animate-in fade-in">
-                  <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs text-purple-300">
-                    6-Digit OTP sent to <strong className="text-white">{signUpEmail}</strong>. Evaluation code: <strong className="font-mono text-white">849201</strong>
+                  <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs text-purple-200 space-y-1">
+                    <p>
+                      A 6-digit verification code has been dispatched to:{' '}
+                      <strong className="text-white">{signUpEmail}</strong>
+                    </p>
+                    <p className="text-[11px] text-purple-300/80">
+                      Please check your Gmail inbox and Spam/Junk folder.
+                    </p>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Enter 6-Digit OTP Code</label>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Enter 6-Digit Email Verification Code
+                    </label>
                     <input
                       type="text"
                       maxLength={6}
                       required
+                      autoFocus
                       value={signUpOtpCode}
-                      onChange={(e) => setSignUpOtpCode(e.target.value)}
-                      placeholder="849201"
-                      className="w-full py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-center text-lg font-mono font-bold tracking-widest text-purple-300 focus:border-purple-500 outline-none"
+                      onChange={(e) => setSignUpOtpCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="123456"
+                      className="w-full py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-center text-xl font-mono font-bold tracking-widest text-purple-300 focus:border-purple-500 outline-none"
                     />
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex items-center justify-between text-xs px-1">
+                    <button
+                      type="button"
+                      onClick={handleResendSignUpOtp}
+                      disabled={resendCooldown > 0 || isLoading}
+                      className="text-purple-400 hover:text-purple-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                      {resendCooldown > 0 ? `Resend Code in ${resendCooldown}s` : 'Resend Code'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSignUpOtpStep('form')}
+                      className="text-slate-400 hover:text-slate-200"
+                    >
+                      Change Email
+                    </button>
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
                     <button
                       type="button"
                       onClick={() => setSignUpOtpStep('form')}
@@ -507,9 +836,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     </button>
                     <button
                       type="submit"
-                      className="flex-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg transition-all"
+                      disabled={isLoading || signUpOtpCode.trim().length !== 6}
+                      className="flex-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
                     >
-                      Verify OTP & Create Account →
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" /> Verifying Code...
+                        </>
+                      ) : (
+                        <>Verify OTP & Create Account →</>
+                      )}
                     </button>
                   </div>
                 </form>
@@ -517,18 +853,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             </div>
           )}
 
-          {/* 3. OTP PASSWORD RESET (Problem statement specification) */}
+          {/* 3. OTP PASSWORD RESET */}
           {authMode === 'otp_reset' && (
             <div className="space-y-4 animate-in fade-in">
               <div>
                 <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
                   <KeyRound className="w-5 h-5 text-amber-400" /> OTP-Based Password Reset
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Secure one-time password verification pipeline</p>
+                <p className="text-xs text-slate-400 mt-0.5">Secure one-time password verification via InsForge</p>
               </div>
 
               {otpStep === 'request' ? (
-                <form onSubmit={handleSendOtp} className="space-y-4">
+                <form onSubmit={handleSendResetOtp} className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">Your Registered Email</label>
                     <div className="relative">
@@ -538,10 +874,48 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                         required
                         value={resetEmail}
                         onChange={(e) => setResetEmail(e.target.value)}
-                        placeholder="k69117842@gmail.com"
+                        placeholder="your-email@gmail.com"
                         className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:border-[#714B67] outline-none"
                       />
                     </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Dispatching Reset OTP...
+                      </>
+                    ) : (
+                      <>Generate & Dispatch 6-Digit OTP →</>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyResetOtp} className="space-y-4 animate-in fade-in">
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300 space-y-1">
+                    <p>
+                      A 6-digit password reset code has been sent to:{' '}
+                      <strong className="text-white">{resetEmail}</strong>
+                    </p>
+                    <p className="text-[11px] text-amber-300/80">Please check your inbox and Spam folder.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Enter 6-Digit Reset Code</label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      required
+                      autoFocus
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="123456"
+                      className="w-full py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-center text-xl font-mono font-bold tracking-widest text-amber-400 focus:border-amber-500 outline-none"
+                    />
                   </div>
 
                   <div>
@@ -551,6 +925,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                       <input
                         type={showResetPassword ? 'text' : 'password'}
                         required
+                        minLength={6}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="••••••••••••"
@@ -567,32 +942,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     </div>
                   </div>
 
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl shadow-lg transition-all"
-                  >
-                    Generate & Dispatch 6-Digit OTP →
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-4 animate-in fade-in">
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300">
-                    6-Digit OTP sent to <strong className="text-white">{resetEmail}</strong>. Evaluation code: <strong className="font-mono text-white">849201</strong>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Enter 6-Digit OTP Code</label>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      required
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value)}
-                      placeholder="849201"
-                      className="w-full py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-center text-lg font-mono font-bold tracking-widest text-amber-400 focus:border-amber-500 outline-none"
-                    />
-                  </div>
-
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -603,9 +952,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     </button>
                     <button
                       type="submit"
-                      className="flex-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg transition-all"
+                      disabled={isLoading || otpCode.trim().length !== 6 || newPassword.length < 6}
+                      className="flex-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
                     >
-                      Verify OTP & Reset Password →
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" /> Resetting Password...
+                        </>
+                      ) : (
+                        <>Verify OTP & Reset Password →</>
+                      )}
                     </button>
                   </div>
                 </form>
