@@ -152,9 +152,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
       }
 
       setResetMessage('Login successful! Launching your StockSense workspace...');
-      setTimeout(() => {
-        onLoginSuccess(loggedInUser);
-      }, 500);
+      onLoginSuccess(loggedInUser);
     } catch (err: any) {
       setErrorMsg(err?.message || 'Network error occurred while connecting to InsForge.');
     } finally {
@@ -264,19 +262,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
       );
 
       setResetMessage('Email successfully verified! Your account is created. Logging you in...');
-      setTimeout(() => {
-        if (regRes.user) {
-          onLoginSuccess(regRes.user);
-        } else {
-          onLoginSuccess({
-            id: data?.user?.id || `usr-${Date.now()}`,
-            name: signUpName.trim(),
-            email,
-            role: signUpRole,
-            warehouseId: 'wh-1',
-          });
-        }
-      }, 700);
+      if (regRes.user) {
+        onLoginSuccess(regRes.user);
+      } else {
+        onLoginSuccess({
+          id: data?.user?.id || `usr-${Date.now()}`,
+          name: signUpName.trim(),
+          email,
+          role: signUpRole,
+          warehouseId: 'wh-1',
+        });
+      }
     } catch (err: any) {
       setErrorMsg(err?.message || 'Verification failed. Please try again.');
     } finally {
@@ -390,15 +386,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
       const localRes = inventoryStore.resetPassword(email, newPassword);
 
       setResetMessage('Password reset successfully! Logging you in with your new credentials...');
-      setTimeout(() => {
-        if (localRes.user) {
-          onLoginSuccess(localRes.user);
-        } else {
-          setAuthMode('signin');
-          setSignInEmail(email);
-          setSignInPassword(newPassword);
-        }
-      }, 700);
+      if (localRes.user) {
+        onLoginSuccess(localRes.user);
+      } else {
+        setAuthMode('signin');
+        setSignInEmail(email);
+        setSignInPassword(newPassword);
+      }
     } catch (err: any) {
       setErrorMsg(err?.message || 'Failed to reset password.');
     } finally {

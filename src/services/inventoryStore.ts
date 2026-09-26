@@ -395,22 +395,7 @@ class InventoryStore {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.USER);
       if (!data) return null;
-      const user: UserProfile = JSON.parse(data);
-      // Clean up any old demo/legacy accounts completely as requested by user
-      const legacyEmails = [
-        'manager@stocksense.io',
-        'staff@stocksense.io',
-        'kamaljit.manager@stocksense.io',
-        'k69117842@gmail.com',
-        'kamaljit444501@gmail.com',
-        'raj40870@gmail.com',
-        'kamaljitlpu27@gmail.com',
-      ];
-      if (user.email && legacyEmails.includes(user.email.toLowerCase())) {
-        localStorage.removeItem(STORAGE_KEYS.USER);
-        return null;
-      }
-      return user;
+      return JSON.parse(data);
     } catch {
       return null;
     }
@@ -450,22 +435,7 @@ class InventoryStore {
   public getAccounts(): StoredUserAccount[] {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.ACCOUNTS);
-      let accounts: StoredUserAccount[] = data ? JSON.parse(data) : [];
-
-      // Completely purge all previous accounts as requested: user will register afresh
-      const legacyEmails = [
-        'manager@stocksense.io',
-        'staff@stocksense.io',
-        'kamaljit.manager@stocksense.io',
-        'k69117842@gmail.com',
-        'kamaljit444501@gmail.com',
-        'raj40870@gmail.com',
-        'kamaljitlpu27@gmail.com',
-      ];
-      accounts = accounts.filter(a => !legacyEmails.includes(a.email.toLowerCase()));
-
-      localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
-      return accounts;
+      return data ? JSON.parse(data) : [];
     } catch {
       return [];
     }

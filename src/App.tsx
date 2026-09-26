@@ -148,6 +148,7 @@ export const App: React.FC = () => {
       <AuthPage
         onLoginSuccess={(loggedInUser) => {
           inventoryStore.login(loggedInUser);
+          setUser(loggedInUser);
           showToast(`Welcome, ${loggedInUser.name}!`);
         }}
       />
