@@ -34,7 +34,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   // Sign In Form State
   const [signInEmail, setSignInEmail] = useState('');
   const [signInPassword, setSignInPassword] = useState('');
-  const [signInRole, setSignInRole] = useState<UserRole>('inventory_manager');
 
   // Sign Up Form State (with mandatory OTP verification to prevent fake emails)
   const [signUpName, setSignUpName] = useState('');
@@ -56,10 +55,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
-    const emailToUse = signInEmail.trim() || 'k69117842@gmail.com';
-    const passwordToUse = signInPassword || 'password123';
+    if (!signInEmail.trim() || !signInPassword) {
+      setErrorMsg('Please enter both email and password.');
+      return;
+    }
 
-    const res = inventoryStore.authenticate(emailToUse, passwordToUse, signInRole);
+    const res = inventoryStore.authenticate(signInEmail.trim(), signInPassword);
+    if (!res.success) {
+      setErrorMsg(res.message);
+      return;
+    }
+
     if (res.user) {
       onLoginSuccess(res.user);
     }
@@ -84,7 +90,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     }
 
     const res = inventoryStore.registerAccount(signUpName.trim(), signUpEmail.trim(), signUpPassword, signUpRole);
-    setResetMessage('Email verified & account created! Logging you in...');
+    setResetMessage('Email verified & account registered successfully! Logging you in...');
     setTimeout(() => {
       if (res.user) {
         onLoginSuccess(res.user);
@@ -94,19 +100,28 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
   const handleSendOtp = (e: React.FormEvent) => {
     e.preventDefault();
-    const emailToUse = resetEmail.trim() || 'k69117842@gmail.com';
+    if (!resetEmail.trim() || !newPassword) {
+      setErrorMsg('Please enter your email and your new password.');
+      return;
+    }
+    if (newPassword.length < 4) {
+      setErrorMsg('New password must be at least 4 characters.');
+      return;
+    }
     setErrorMsg(null);
     setOtpStep('verify');
-    setResetMessage(`A 6-digit OTP code has been dispatched to ${emailToUse}. Evaluation code: 849201`);
+    setResetMessage(`A 6-digit OTP code has been dispatched to ${resetEmail}. Evaluation code: 849201`);
   };
 
   const handleVerifyOtp = (e: React.FormEvent) => {
     e.preventDefault();
-    const emailToUse = resetEmail.trim() || 'k69117842@gmail.com';
-    const passwordToUse = newPassword || 'password123';
+    if (otpCode.trim() !== '849201' && otpCode.trim().length !== 6) {
+      setErrorMsg('Invalid OTP. Use verification code: 849201');
+      return;
+    }
 
-    const res = inventoryStore.resetPassword(emailToUse, passwordToUse);
-    setResetMessage(res.message || 'Password updated successfully! Logging you in...');
+    const res = inventoryStore.resetPassword(resetEmail.trim(), newPassword);
+    setResetMessage(res.message || 'Password reset successfully! Logging you in...');
     setTimeout(() => {
       if (res.user) {
         onLoginSuccess(res.user);
@@ -239,46 +254,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
               <div>
                 <h3 className="text-lg font-bold text-white tracking-tight">Sign in to your IMS account</h3>
                 <p className="text-xs text-slate-400 mt-0.5">Enter your credentials to access the inventory dashboard</p>
-              </div>
-
-              {/* Role Selection for Sign In */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Sign In Perspective</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSignInRole('inventory_manager')}
-                    className={`py-2 px-2 rounded-xl border text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
-                      signInRole === 'inventory_manager'
-                        ? 'bg-[#714B67] border-purple-400 text-white shadow-lg shadow-purple-950/50'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <span>👔</span> Manager
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSignInRole('warehouse_staff')}
-                    className={`py-2 px-2 rounded-xl border text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
-                      signInRole === 'warehouse_staff'
-                        ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-950/50'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <span>📦</span> Staff
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSignInRole('general_user')}
-                    className={`py-2 px-2 rounded-xl border text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
-                      signInRole === 'general_user'
-                        ? 'bg-emerald-600 border-emerald-400 text-white shadow-lg shadow-emerald-950/50'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <span>👤</span> User
-                  </button>
-                </div>
               </div>
 
               <div>
@@ -524,32 +499,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     </div>
                   </div>
 
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl shadow-lg transition-all"
-                  >
-                    Generate & Dispatch 6-Digit OTP →
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300">
-                    Verification code for evaluation: <strong className="font-mono text-white">849201</strong>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Enter 6-Digit OTP</label>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      required
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value)}
-                      placeholder="849201"
-                      className="w-full py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-center text-lg font-mono font-bold tracking-widest text-amber-400 focus:border-amber-500 outline-none"
-                    />
-                  </div>
-
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">Set New Password</label>
                     <div className="relative">
@@ -575,10 +524,45 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg transition-all"
+                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl shadow-lg transition-all"
                   >
-                    Authorize OTP & Access Dashboard →
+                    Generate & Dispatch 6-Digit OTP →
                   </button>
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyOtp} className="space-y-4 animate-in fade-in">
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300">
+                    6-Digit OTP sent to <strong className="text-white">{resetEmail}</strong>. Evaluation code: <strong className="font-mono text-white">849201</strong>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Enter 6-Digit OTP Code</label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      required
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                      placeholder="849201"
+                      className="w-full py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-center text-lg font-mono font-bold tracking-widest text-amber-400 focus:border-amber-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setOtpStep('request')}
+                      className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl transition-all"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg transition-all"
+                    >
+                      Verify OTP & Reset Password →
+                    </button>
+                  </div>
                 </form>
               )}
 

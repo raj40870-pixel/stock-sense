@@ -554,36 +554,34 @@ class InventoryStore {
     return { success: true, message: 'Account registered successfully!', user };
   }
 
-  public authenticate(email: string, password?: string, role?: UserRole): { success: boolean; message: string; user?: UserProfile } {
+  public authenticate(email: string, password: string): { success: boolean; message: string; user?: UserProfile } {
     const accounts = this.getAccounts();
-    const normalizedEmail = (email || 'k69117842@gmail.com').trim().toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
     const acc = accounts.find(a => a.email.toLowerCase() === normalizedEmail);
 
-    if (acc) {
-      if (password) {
-        acc.password = password;
-      }
-      if (role) {
-        acc.role = role;
-      }
-      localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
-      const user: UserProfile = {
-        id: acc.id,
-        name: acc.name,
-        email: acc.email,
-        role: acc.role,
-        warehouseId: acc.warehouseId,
+    if (!acc) {
+      return {
+        success: false,
+        message: `Account "${email}" not found! Please create your account in "Create Account" tab and verify via OTP.`,
       };
-      this.login(user);
-      return { success: true, message: 'Login successful!', user };
     }
 
-    // Seamlessly register and log in any email entered
-    const isStaff = normalizedEmail.includes('staff');
-    const rawName = normalizedEmail.split('@')[0].replace(/[._-]/g, ' ');
-    const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-    const assignedRole: UserRole = role || (isStaff ? 'warehouse_staff' : 'inventory_manager');
-    return this.registerAccount(formattedName || 'Inventory User', normalizedEmail, password || 'password123', assignedRole);
+    if (acc.password && acc.password !== password) {
+      return {
+        success: false,
+        message: 'Incorrect password! Please check your password or use "Forgot via OTP?" to reset it.',
+      };
+    }
+
+    const user: UserProfile = {
+      id: acc.id,
+      name: acc.name,
+      email: acc.email,
+      role: acc.role,
+      warehouseId: acc.warehouseId,
+    };
+    this.login(user);
+    return { success: true, message: 'Login successful!', user };
   }
 
   public switchAccount(email: string): UserProfile | null {
